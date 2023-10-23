@@ -1,0 +1,60 @@
+{% if needs_form %}<form id="item_form_---setup_files---" 
+                             data-url="0"
+                             data-model="---setup_files---"
+                             data-file_saved=true>{% endif %}
+    {% if not hide_file_list %}<ul>
+        {% for file in files %}
+            <li>
+                <b>{{ file.name }}</b>
+                    {% comment %} Render a small form to collect if the first row is a header row {% endcomment %}
+                    {% if file.status.preinspected == False %}
+                        {% if file.type in "tsv,csv" %}
+                            <br>The first row contains the following data:
+                            <br><span class="attention">{% for field in file.header_row_as_list %}"{{ field }}"{% if not forloop.last %},{% endif %} {% endfor %}</span>
+                            <div class="m-4 form-horizontal">
+                                Use the first row as field names? 
+                                <div class="btn-group" id="file_field_first_row_header_{{file.id}}" data-is_radio=true>
+                                    <input type="radio" class="btn-check" name="options_{{file.id}}" id="yes_{{file.id}}" value="True" autocomplete="off" onchange="check_submittable('---setup_files---')">
+                                    <label class="btn btn-outline-primary" for="yes_{{file.id}}">Yes</label>
+                                    <input type="radio" class="btn-check" name="options_{{file.id}}" id="no_{{file.id}}" value="False" autocomplete="off" onchange="check_submittable('---setup_files---')">
+                                    <label class="btn btn-outline-primary" for="no_{{file.id}}">No</label>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% elif file.status.inspected == False%}being inspected
+                    {% endif %}
+            </li>
+        {% endfor %}
+    {% endif %}</ul>
+    {% if needs_primary %}
+    A <span class="info" data-toggle="tooltip" data-html="true" title="One file needs to be marked as Primary.  The import will result in one imported object for each record in the Primary file."> Primary</span> file needs to be designated.<br>
+    {% include "ml_import_wizard/fragments/control_radio_set.html" with radios=files input_name="primary_file_id" check_submittable="---setup_files---" %}
+    {% endif %}
+    {% if needs_linking %}
+        <br>Files need to be <span class="info" data-toggle="tooltip" data-html="true" title="Files need to be Linked by a field that contains the same values in order to build a single record for each row in the Primary file."> Linked</span> to enable data import.<br>
+        {% for file in files_excluding_master %}
+        <div class="indent">Link <b>{{ file.name }}</b> with {{ primary_file.name }} (primary):<br>
+            <select 
+                onchange="check_submittable('---setup_files---')"
+                name='file_field_primary-{{ file.id }}' 
+                id='file_field_primary-{{ file.id }}' 
+                class="selectpicker border rounded-3 file-fields-dropdown" 
+                title="Importing options..."
+                data-is_dropdown=true>
+                {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=primary_file show_files=True %}
+            </select>
+
+            <select 
+                onchange="check_submittable('---setup_files---')"
+                name='file_field_linked-{{ file.id }}' 
+                id='file_field_linked-{{ file.id }}' 
+                class="selectpicker border rounded-3 file-fields-dropdown" 
+                title="Importing options..."
+                data-is_dropdown=true>
+                {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file show_files=True %}
+            </select><br><br>
+
+        </div>{% endfor %}
+    {% endif %}
+    {% if needs_form %}<input type="submit" class="btn btn-primary disabled" id="submit_---setup_files---">
+</form>{% endif %}

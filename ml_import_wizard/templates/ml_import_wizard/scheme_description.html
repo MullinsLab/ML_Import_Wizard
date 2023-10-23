@@ -1,0 +1,46 @@
+{% extends "ml_import_wizard/base.html" %}
+
+{% block page_content %}
+<div class="container">
+    <table class="table table-striped">
+        <tbody>
+            <tr>
+                <td>
+                    Primary file: <span class="primary_file">{{ description.files.primary }}</span>
+                </td>
+            </tr>
+            {% if description.files.secondary %}
+                <tr><td>
+                {% for file, link in description.files.secondary.items %}
+                    Secondary file: <span class="secondary_file_{{ link.color_key }}">{{ file }}</span><br>
+                    Linked on: <span class="secondary_file_{{ link.color_key }}">{{ link.secondary_field }}</span> = <span class="primary_file">{{ link.primary_field }}</span><br><br>
+                {% endfor %}
+                </td></tr>
+            {% endif %}
+            
+            {% if description.items %}
+                {% for model in description.models %}
+                    <tr>
+                        <td>
+                            Model: <span class="model_name">{{ model.name }}</span>
+                        </td>
+                    </tr>
+                    {% for item in model.items %}
+                        <tr>
+                            <td>
+                                Field: <span class="field_name">{{ item.field }}</span>
+                                Strategy: <span class="{{ item.strategy_class|default:"strategy" }}">{{ item.strategy }}</span>
+                                {% if item.value %}Value: <span class="{{ item.value_class }}">{{ item.value|safe }}</span>{% endif %}
+                                
+                                {% for key, value in item.key_values.items %}
+                                    <br>{{ key }}: <span class="{{ value.value_class }}">{{ value.value }}</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% load ml_import_wizard_tags %}
+
+<span id="resolver_{{ model.name }}__-__{{ field.name }}__-__{{ resolver }}_hider" {% if strategy.resolver != resolver %}class='not-visible'{% endif %}>
+    {% for argument in settings.user_input_arguments%}
+        {{ argument.fancy_name }}: 
+        <select 
+        onchange="manage_file_field_input('{{ model.name }}__-__{{ field.name }}', '{{ model.name }}')"
+        id='resolver_{{ model.name }}__-__{{ field.name }}__-__{{ resolver }}__-__{{argument.name}}' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="{{ argument.fancy_name }} field ..."
+        data-width=30%>
+            <option></option>
+            {% for file in scheme.files.all %}
+                {% with strategy_argument=strategy.arguments|get_item:argument.name %}
+                    {% include "ml_import_wizard/fragments/field_file_fields_option.html" with key=strategy_argument.key %}
+                {% endwith %}
+            {% endfor %}
+        </select>
+        {% if not forloop.last%}<br>{% endif %}
+    {% endfor %}
+</span>

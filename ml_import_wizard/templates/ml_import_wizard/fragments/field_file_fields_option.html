@@ -1,0 +1,10 @@
+{% load ml_import_wizard_tags %}
+
+{% for field in file.fields.all %}
+<option value='**field**{{ field.id }}' {% if set_data_name %}data-name={{ field.name }}{% endif %} data-content="{{ field.name }}<br>
+    {% if show_files %}<span class='file-fields-file-name'>{{ file.name }}</span><br>{% endif %}
+    <span class='file-fields-sample'>{{ field.short_sample }}</span>"
+    {% if title %}title="{{ field.name }}"{% endif %}
+    {% if key == field.id or field.id in key_list %}selected{% endif %}>
+</option>
+{% endfor %}

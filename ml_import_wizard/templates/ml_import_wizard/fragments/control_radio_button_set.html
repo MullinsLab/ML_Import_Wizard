@@ -1,0 +1,9 @@
+<div class="m-4 form-horizontal">
+  {{ set_label }} 
+  <div class="btn-group" id={{ set_id }}>
+    {% for button in buttons %}
+      <input type="radio" class="btn-check" name="options" id="{{ button.id }}" autocomplete="off">
+      <label class="btn btn-outline-primary" for="{{ button.id }}">{{ button.label }}</label>
+    {% endfor %}
+  </div>
+</div>

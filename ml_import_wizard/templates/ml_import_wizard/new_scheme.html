@@ -1,0 +1,10 @@
+{% extends "ml_import_wizard/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_content %}
+<div class='border border-2 border-primary rounded-3 bg-light container'>
+Let's get you started with a new {{ importer }} Import:<br><br>
+ 
+{% crispy form %}
+</div>
+{% endblock %}

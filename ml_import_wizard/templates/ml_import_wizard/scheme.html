@@ -1,0 +1,34 @@
+{% extends "ml_import_wizard/base.html" %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block header_content %}
+<link rel="stylesheet" type="text/css" href="{% static 'ml_import_wizard/css/import_wizard.css' %}">
+<script src="{% static 'ml_import_wizard/js/import_wizard.js' %}"></script>
+{% endblock %}
+
+{% block page_content %}
+<div class='border border-2 border-primary rounded-3 bg-light container'>
+    <fieldset class="accordion" id="import_scheme_accordion">
+        <legend id='accordion_container'>{{import_scheme}}</legend>
+    </fieldset>
+    <button type="button" class="btn btn-primary mt-2 mb-2 disabled">Preview Data</button>
+</div>
+
+<script type="text/javascript">
+    const ITEM_TEMPLATE = `{% include "ml_import_wizard/fragments/scheme_item.html" %}`;
+    // const item_template='test';
+    $( document ).ready(
+        window.import_scheme = new ImportScheme({
+            id: {{ import_scheme.id }},
+            base_url: "{% url 'ml_import_wizard:scheme' import_scheme_id=import_scheme.id %}",
+            accordion_container: '#import_scheme_accordion',
+        })
+    );
+    
+    // setTimeout($('.selectpicker').selectpicker(), 3000);
+    
+</script>
+{% include "ml_import_wizard/fragments/unclosable_progress_modal.html" %}
+{% endblock %}

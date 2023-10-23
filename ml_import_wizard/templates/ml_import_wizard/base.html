@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load static %}
+{% load ml_import_wizard_tags %}
+
+{% block header_content %}
+    <link rel="stylesheet" type="text/css" href="{% static 'ml_import_wizard/css/import_wizard.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.21.3/dist/bootstrap-table.min.css">
+    <script src="{% static 'ml_import_wizard/js/import_wizard.js' %}"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.21.3/dist/bootstrap-table.min.js"></script>
+{% endblock %}

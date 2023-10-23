@@ -1,0 +1,16 @@
+{% comment %} {% load ml_import_wizard_tags %} {% endcomment %}
+<div  id="file_field_{{ input_name }}" data-is_radio=true>
+    {% for radio in radios %}
+        <div class="form-check indent">
+            <input class="form-check-input" 
+                type="radio" name="options_{{ input_name }}" 
+                id="file_field_{{ input_name }}_{{ radio.id }}" 
+                value="{{ radio.id }}"
+                {% if check_submittable %}onclick="check_submittable('{{ check_submittable }}')"{% endif %}
+            >
+            <label class="form-check-label" for="file_field_{{ input_name }}_{{ radio.id }}">
+                {{ radio.name }}
+            </label>
+        </div>
+    {% endfor %}
+</div>

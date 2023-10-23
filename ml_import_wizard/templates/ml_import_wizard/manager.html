@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+So, it looks like you're wanting to import something?
+<br><br>
+Do you want to import something new:
+<ul>
+{% for importer in importers %}
+<li><a href='{{ importer.importer }}''>{{ importer.name }}</a>{% if importer.description %}: {{ importer.description }}{% endif %}</li>
+{% endfor %}
+</ul>
+{% if user_import_schemes|length %}
+Or keep working with a previous import?
+<ul>{% for scheme in user_import_schemes %}
+<li><a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a>{% if scheme.description %}: {{scheme.description }}{% endif %}</li>
+{% endfor %}
+</ul>{% endif %}
+{% endblock %}

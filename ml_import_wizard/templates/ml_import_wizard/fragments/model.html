@@ -1,0 +1,29 @@
+{% load ml_import_wizard_tags %}
+
+{% if model.settings.restriction == "deferred"%}
+    <span class="field-annotation" 
+        data-toggle="tooltip" 
+        data-html="true" 
+        title="New data placed into DEFERRED data fields will be reviewed by an administrator, and may be changed or rejected.">
+            Defer
+    </span>
+{% elif model.settings.restriction == "rejected"%}
+    <span class="field-annotation" 
+        data-toggle="tooltip" 
+        data-html="true" 
+        title="Data that does not coform with REJECTED rules will result in the entire record not being imported.">
+            Reject
+    </span>
+{% endif %}
+<form id="item_form_{{ model.name }}"
+    data-url="{{ app }}-{{ model.name }}"
+    data-model="{{ model.name }}">
+    {% if model.settings.key_value_model %}
+        {% include "ml_import_wizard/fragments/key_value_model_field.html" %}
+    {% else %}
+        {% for field in model.shown_fields %}
+            {% include "ml_import_wizard/fragments/field.html" with field=field %}
+        {% endfor %}
+    {% endif %}
+<br><input type="submit" class="btn btn-primary disabled" id="submit_{{ model.name }}">
+</form>

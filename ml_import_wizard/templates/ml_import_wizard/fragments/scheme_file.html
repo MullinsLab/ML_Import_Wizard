@@ -1,0 +1,14 @@
+{% load crispy_forms_tags %}
+{% crispy form %}
+
+<script>
+    $( document ).ready( 
+        prep_upload_progress_bar({
+            form_name: 'upload_form',
+            file_input_names: ['id_file1', 'id_file2', 'id_file3', 'id_file4', 'id_file5'], 
+            progress_bar_name: 'progress',
+            progress_content: 'progress_content',
+            post_url: '{{ path }}',
+        }) 
+    );
+</script>

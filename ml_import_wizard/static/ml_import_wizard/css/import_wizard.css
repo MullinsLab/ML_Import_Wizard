@@ -1,0 +1,166 @@
+.not-visible{
+    display: none;
+}
+
+/* .accordion-urgent-button{
+    background-color: rgb(252, 178, 178);
+} */
+
+.accordion-urgent-button::before{
+    content: url('../images/notice-outline-red.svg');
+    width: 25px;
+    height: 20px;
+    padding-right: 5px;
+}
+
+.accordion-urgent{
+    background-color: rgb(255, 240, 240);
+}
+
+.resolver{
+    color: blue;
+    font-size: 80%;
+}
+
+.file-fields-sample{
+    color: orange;
+    font-size: 80%;
+    /* font-weight: bold; */
+}
+
+.file-fields-sample::before{
+    content: "Sample values: ";
+    color: blue;
+    font-weight: normal;
+}
+
+.file-fields-file-name{
+    color: olive;
+    font-size: 80%;
+    /* font-weight: bold; */
+}
+
+.file-fields-file-name::before{
+    content: "File: ";
+    color: blue;
+    font-weight: normal;
+}
+
+.file-fields-dropdown{
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.field-annotation{
+    color: orange;
+    font-size: 80%;
+    font-weight: bold;
+}
+
+.field-annotation::before{
+    content: "Restriction: ";
+    color: blue;    
+    font-weight: normal;
+}
+
+.attention{
+    color: blue;
+}
+
+.info{
+    font-weight: bold;
+}
+
+/* .info::after{
+    content: url("https://upload.wikimedia.org/wikipedia/commons/1/1e/Curation_bar_icon_info_35x35.png");
+    width: 5px;
+    height: 5px;
+    padding-left: 5px;
+} */
+
+.info::before{
+    display: inline-flex;
+    content: '';
+
+    /* Using the background-image and
+        its related properties to add
+        the SVG content */
+    background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/1e/Curation_bar_icon_info_35x35.png");
+    background-size: 10px 10px;
+    height: 10px;
+    width: 10px;
+}
+
+.indent{
+    margin-left: 20px;
+}
+
+.pointer{
+    cursor: pointer;
+}
+
+.primary_file{
+    color: green;
+    font-weight: bold;
+}
+
+.secondary_file_1{
+    color: #0088;
+    font-weight: bold;
+}
+
+.secondary_file_2{
+    color: #0000ff;
+    font-weight: bold;
+}
+
+.secondary_file_3{
+    color: #0000bb;
+    font-weight: bold;
+}
+
+.secondary_file_4{
+    color: #000044;
+    font-weight: bold;
+}
+
+.secondary_file_5{
+    color: #008888;
+    font-weight: bold;
+}
+
+.secondary_file_6{
+    color: #008800;
+    font-weight: bold;
+}
+
+.secondary_file_7{
+    color: #00ffff;
+    font-weight: bold;
+}
+
+.secondary_file_8{
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.model_name{
+    font-weight: bold;
+}
+
+.field_name{
+    font-weight: bold;
+}
+
+.strategy{
+    font-weight: bold;
+}
+
+.value{
+    font-weight: bold;
+}
+
+.no_data{
+    color: red;
+    font-weight: bold;
+}

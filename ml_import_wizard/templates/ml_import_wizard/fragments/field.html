@@ -1,0 +1,124 @@
+{% load ml_import_wizard_tags %}
+
+{% with strategy=strategies|get_item:field.name %}
+<br><strong>{{ field|verbose_name}}: </strong>
+<select 
+    onchange="manage_file_field_input('{{ model.name }}__-__{{ field.name }}', '{{ model.name }}')" 
+    name='file_field_{{ model.name }}__-__{{ field.name }}' 
+    id='file_field_{{ model.name }}__-__{{ field.name }}' 
+    class="selectpicker border rounded-3 file-fields-dropdown" 
+    title="Importing options..."
+    data-width=30%>
+
+    <option></option>
+    {% if field.name in model.settings.load_value_fields %}
+        <optgroup label="Values from {{ field.fancy_name }}...">
+            {% with values=field_values|get_item:field.name %}
+                {% for value in values %}
+                    {% include "ml_import_wizard/fragments/field_values_from_model_option.html" with value=value row=strategy.row %}
+                {% endfor %}
+            {% endwith %}
+        </optgroup>
+    {% endif %}
+    <optgroup label="Non file values...">
+        <option value='**raw_text**' data-content="Specify Text" 
+            {% if model.settings.default_option == "raw_text" or strategy.strategy == "Raw Text" %} selected{% endif %}>
+        </option>
+        <option value='**select_first**' data-content="Select First From"{% if strategy.strategy == "Select First" %} selected{% endif %}></option>
+        <option value='**split_field**' data-content="Split Field"{% if strategy.strategy == "Split Field" %} selected{% endif %}></option>
+        {% if not field.not_nullable %}<option value='**no_data**' data-content="No Data"{% if strategy.strategy == "No Data" %} selected{% endif %}></option>{% endif %}
+    </optgroup>
+    <optgroup label="File Fields...">
+        {% for resolver, settings in field.resolvers.items %}
+            {% include "ml_import_wizard/fragments/resolver_option.html" with file=file key=strategy.key %}
+        {% endfor %}
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file key=strategy.key %}
+        {% endfor %}
+    </optgroup>
+</select> 
+<input 
+    type="text" 
+    placeholder="Specify text..." 
+    name="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
+    id="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
+    {% if model.settings.default_option == "raw_text" and not strategy.strategy or strategy.strategy == "Raw Text" %}{% else %}class="not-visible"{% endif %}
+    oninput="check_submittable('{{ model.name }}')" {% if strategy.strategy == "Raw Text" %}value="{{ strategy.raw_text }}"{% endif %}>
+
+<span id="file_field_{{ model.name }}__-__{{ field.name }}_first_hider"
+    {% if model.settings.default_option != "select_first" and strategy.strategy != "Select First" %} class="not-visible"{% endif %}>
+    
+    <select 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_first_1' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_first_1' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="First choice..."
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file title=True key=strategy.first_keys.0 %}
+        {% endfor %}
+    </select>
+
+    <select 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_first_2' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_first_2' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="Second choice..."
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file title=True key=strategy.first_keys.1 %}
+        {% endfor %}
+    </select>
+
+    <select 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_first_3' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_first_3' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="Third choice..."
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file title=True key=strategy.first_keys.2 %}
+        {% endfor %}
+    </select>
+</span>
+
+<span id="file_field_{{ model.name }}__-__{{ field.name }}_split_hider"
+    {% if model.settings.default_option != "split_field" and strategy.strategy != "Split Field" %} class="not-visible"{% endif %}>
+    Split field 
+    <select 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_split' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_split' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="Field to split values from..."
+        onchange="check_submittable('{{ model.name }}')">
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file key=strategy.split_key %}
+        {% endfor %}
+    </select>
+    using the character 
+    <input 
+        name="file_field_{{ model.name }}__-__{{ field.name }}_split_splitter" 
+        id = file_field_{{ model.name }}__-__{{ field.name }}_split_splitter 
+        type="text" 
+        size=1 
+        maxlength=1
+        value="{{ strategy.splitter }}"> 
+    keeping value in position 
+    <select 
+        name="file_field_{{ model.name }}__-__{{ field.name }}_split_position" 
+        id="file_field_{{ model.name }}__-__{{ field.name }}_split_position" 
+        class="slectpicker border rounded-3" 
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
+        {% for i in "1234" %}
+            <option{% if strategy.splitter_position == forloop.counter %} selected{% endif %}>{{ forloop.counter }}</option>
+        {% endfor %}
+    </select>
+</span>
+{% for resolver, settings in field.resolvers.items %}
+    {% include "ml_import_wizard/fragments/resolver_fields.html" %}
+{% endfor %}
+{% endwith %}
