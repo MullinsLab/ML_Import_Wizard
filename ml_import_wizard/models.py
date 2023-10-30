@@ -13,7 +13,7 @@ import subprocess, csv, inspect, os.path, sqlite3
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
 from importlib.util import find_spec
-if (find_spec("gffutils")): import gffutils 
+if find_spec("gffutils"): import gffutils # type: ignore
 else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name, deep_exists
