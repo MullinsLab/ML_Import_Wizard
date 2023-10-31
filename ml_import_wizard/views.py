@@ -106,6 +106,7 @@ class DoImportScheme(LoginRequiredMixin, View):
         actions: list = []
         # First make sure that there is one or more file to work from
         if import_scheme.files.count() == 0:
+            log.debug("No files")
             action: dict = {
                 'name': 'No data file',
                 "description": "You'll need one or more files to import data from.",

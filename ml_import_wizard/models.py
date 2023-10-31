@@ -8,7 +8,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from pathlib import Path
 from itertools import islice
-import subprocess, csv, inspect, os.path, sqlite3
+import subprocess, csv, inspect, os.path, sqlite3, pandas as pd
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -754,11 +754,12 @@ class ImportSchemeFile(ImportBaseModel):
     def row_count(self) -> int:
         """ Count the lines of the file """
 
-        if self.base_type == "text":
+        if self.base_type in ["text", "excel"]:
             if self.settings.get("has_db", False):
                 return sqlite3.connect(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db").execute("SELECT COUNT(*) FROM data").fetchone()[0]
             else:
-                return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
+                data_frame: pd.DataFrame = self._get_file_as_dataframe()
+                return len(data_frame.index)
     
     @property
     def base_type(self) -> str:
@@ -768,6 +769,8 @@ class ImportSchemeFile(ImportBaseModel):
             return "gff"
         elif self.type.lower() in ("tsv", "csv"):
             return "text"
+        elif self.type.lower() in ("xlsx", "xls"):
+            return "excel"
     
     @property
     def ready_to_inspect(self) -> bool:
@@ -837,15 +840,9 @@ class ImportSchemeFile(ImportBaseModel):
                 for row in self._rows_from_db(limit_count=limit_count, offset_count=offset_count, connection=connection):
                     yield row
             else:
-                columns: list[str] = []
-                if self.settings.get("first_row_header", False):
-                    columns = self.header_fields()
+                columns = self.header_fields()
 
-                for row in self._rows_from_text_file(limit_count=limit_count, offset_count=offset_count, specific_rows=specific_rows, header_row=header_row):
-                    if not len(columns):
-                        for index, field in enumerate(row):
-                            columns.append(f"Field {index+1}")
-
+                for row in self._rows_from_file(limit_count=limit_count, offset_count=offset_count, specific_rows=specific_rows, header_row=header_row):
                     row_dict = {}
                     
                     for index, field in enumerate(row):
@@ -855,18 +852,19 @@ class ImportSchemeFile(ImportBaseModel):
     def header_fields(self, *, connection = None) -> list:
         """ Return the first row of the file as a list """
         
-        if self.base_type == "text":
-            if self.settings.get("has_db", False):
-                fields: list = []
-                if not connection: 
-                    connection = self._get_db_connection()
+        if self.settings.get("has_db", False):
+            fields: list = []
+            if not connection: 
+                connection = self._get_db_connection()
 
-                for field in connection.execute("SELECT name FROM columns"):
-                    fields.append(field["name"])
-                return fields
-            else:
-                for fields in self._rows_from_text_file(header_row=True):
-                    return fields
+            for field in connection.execute("SELECT name FROM columns"):
+                fields.append(field["name"])
+            return fields
+        
+        elif self.base_type in ["text", "excel"]:
+            data_frame: pd.DataFrame = self._get_file_as_dataframe()
+            return data_frame.columns.tolist()
+
 
     def find_row_by_key(self, *, field: str=None, key: str=None, cache: LRUCacheThing=None, connection=None) -> list|None:
         """ Find the first row that has a field that equals key.  Uses a cache object if it's given one """
@@ -926,43 +924,57 @@ class ImportSchemeFile(ImportBaseModel):
         for row in connection.execute(sql):
             yield row
 
-    def _rows_from_text_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False) -> list:
-        """ Iterates through the rows of a text (csv or tsv) file, returning a list for each row """
+    def _get_file_as_dataframe(self) -> pd.DataFrame:
+        """ Reuturns the contents of the file as a pandas DataFrame """
+
+        if hasattr(self, "data_frame"):
+            return self.data_frame
+
+        data_frame: pd.DataFrame = None
+
+        match self.base_type:
+            case "text":
+                delimiter: str = "\t" if self.type.lower()=="tsv" else ","
+                data_frame = pd.read_csv(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}", delimiter=delimiter)
+
+            case "excel":
+                data_frame = pd.read_excel(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}")
+        
+        if not data_frame.empty:
+            data_frame = data_frame.dropna(how="all", axis=1)
+            self.data_frame = data_frame
+
+        return data_frame
+
+    def _rows_from_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False) -> list:
+        """ Iterates through the rows of a text or excel file, returning a list for each row """
     
-        delimiter: str = "\t" if self.type.lower()=="tsv" else ","
         read_count: int = 0
         returned_count: int = 0
-        skipped_header_row: bool = False
-        has_header_row: bool = self.settings.get("first_row_header", False)
 
         if specific_rows is not None:
             max_specific_rows: int = max(specific_rows)
             specific_rows.sort()
         else:
-            max_specific_rows = 0
+            max_specific_rows: int = 0
 
-        with open(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}", "r") as file:
-            reader = csv.reader(file, delimiter=delimiter)
-            for row in reader:
-                if not header_row and not skipped_header_row and has_header_row:
-                    skipped_header_row = True
-                    continue
+        data_frame: pd.DataFrame = self._get_file_as_dataframe()
 
-                read_count += 1
-                if not header_row and specific_rows is not None and read_count not in specific_rows:
-                    continue
-                
-                if offset_count and read_count <= offset_count:
-                    continue
+        for index, row in data_frame.iterrows():
+            if specific_rows is not None and index not in specific_rows:
+                continue
+            
+            if offset_count and index <= offset_count:
+                continue
 
-                yield row
-                returned_count += 1
+            yield row.values.flatten().tolist()
+            returned_count += 1
 
-                if specific_rows is not None and returned_count > max_specific_rows:
-                    break
+            if specific_rows is not None and returned_count > max_specific_rows:
+                break
 
-                if limit_count and returned_count >= limit_count or header_row:
-                    break
+            if limit_count and returned_count >= limit_count:
+                break
 
     def _rows_from_gff_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None) -> dict[str: any]:
         """ Iterates through the rows of the GFF file, returning a dict for each row """
@@ -1094,7 +1106,6 @@ class ImportSchemeFile(ImportBaseModel):
         if not ignore_status and self.status.uploaded == False:
             raise FileNotReadyError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
 
-        # File is missing from disk
         if not os.path.exists(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}"):
             raise FileNotReadyError(f"File is missing from disk: {self} ({settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name})")
 
@@ -1123,7 +1134,6 @@ class ImportSchemeFile(ImportBaseModel):
         self.settings["has_db"] = False
 
         connection = self._get_db_connection()
-        #cursor = connection.cursor()
 
         columns: list = self.header_fields()
         sql: str = ""
@@ -1137,7 +1147,7 @@ class ImportSchemeFile(ImportBaseModel):
         connection.execute(f"CREATE TABLE data({column_list})")
 
         sql = f"INSERT INTO data VALUES({', '.join(['?' for column in columns])})"
-        for row in self._rows_from_text_file():
+        for row in self._rows_from_file():
             connection.execute(sql, row)
 
         connection.commit()

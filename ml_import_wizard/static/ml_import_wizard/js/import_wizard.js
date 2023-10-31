@@ -263,7 +263,7 @@ class ImportSchemeItem{
                     };
                 };
 
-                console.log(form_data);
+                // console.log(form_data);
 
                 $.ajax({
                     type: "POST",
