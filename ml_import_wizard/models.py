@@ -8,7 +8,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from pathlib import Path
 from itertools import islice
-import subprocess, csv, inspect, os.path, sqlite3, pandas as pd
+import os.path, sqlite3, pandas as pd
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -629,7 +629,6 @@ class ImportScheme(ImportBaseModel):
                 cache_thing.rollback()
                 ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
         
-            print(f"{row_count+offset_count:,}")
             row_count += 1
 
     def description_object(self) -> str:
@@ -825,8 +824,8 @@ class ImportSchemeFile(ImportBaseModel):
         if self.base_type == "gff":
             self._inspect_gff_file(use_db=use_db, ignore_status=ignore_status)
 
-        elif self.base_type == "text":
-            self._inspect_text_file(ignore_status=ignore_status)
+        elif self.base_type in ["text", "excel"]:
+            self._inspect_tabular_file(ignore_status=ignore_status)
 
     def rows(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
@@ -835,7 +834,7 @@ class ImportSchemeFile(ImportBaseModel):
             for row in self._rows_from_gff_file(limit_count=limit_count, offset_count=offset_count, specific_rows=specific_rows):
                 yield row
 
-        elif self.base_type == "text":
+        elif self.base_type in ["text", "excel"]:
             if self.settings.get("has_db", False):
                 for row in self._rows_from_db(limit_count=limit_count, offset_count=offset_count, connection=connection):
                     yield row
@@ -864,7 +863,6 @@ class ImportSchemeFile(ImportBaseModel):
         elif self.base_type in ["text", "excel"]:
             data_frame: pd.DataFrame = self._get_file_as_dataframe()
             return data_frame.columns.tolist()
-
 
     def find_row_by_key(self, *, field: str=None, key: str=None, cache: LRUCacheThing=None, connection=None) -> list|None:
         """ Find the first row that has a field that equals key.  Uses a cache object if it's given one """
@@ -941,7 +939,7 @@ class ImportSchemeFile(ImportBaseModel):
                 data_frame = pd.read_excel(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}")
         
         if not data_frame.empty:
-            data_frame = data_frame.dropna(how="all", axis=1)
+            data_frame = data_frame.dropna(how="all", axis=1).map(str)
             self.data_frame = data_frame
 
         return data_frame
@@ -968,6 +966,7 @@ class ImportSchemeFile(ImportBaseModel):
                 continue
 
             yield row.values.flatten().tolist()
+            print(row.values)
             returned_count += 1
 
             if specific_rows is not None and returned_count > max_specific_rows:
@@ -999,7 +998,6 @@ class ImportSchemeFile(ImportBaseModel):
             counter += 1
 
             if offset_count and counter <= offset_count:
-                    print(f"Skipping row: {counter:,}")
                     continue
 
             yield row
@@ -1007,16 +1005,15 @@ class ImportSchemeFile(ImportBaseModel):
             if limit_count and counter >= limit_count:
                 break
 
-    def _inspect_text_file(self, *, ignore_status: bool = False) -> None:
-        """ Inspect a text file (tsv, csv) by importing to the db """
+    def _inspect_tabular_file(self, *, ignore_status: bool = False) -> None:
+        """ Inspect a tabular file (text, excel) by importing to the db """
         
         self._confirm_file_is_ready(ignore_status=ignore_status, preinspected=True)
 
         self.set_status_by_name('Inspecting')
         self.save(update_fields=["status"])
 
-        connection = self._create_db_from_text_file(replace_file=True)
-
+        connection = self._create_db_from_tabular_file(replace_file=True)
         row_count = self.row_count
         
         # Look at 25 rows spread out in the file.
@@ -1122,7 +1119,7 @@ class ImportSchemeFile(ImportBaseModel):
             if not ignore_status and inspected and not os.path.exists(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db"):
                 raise FileNotReadyError(f"DB file is missing from disk: {self} ({settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db)")
     
-    def _create_db_from_text_file(self, *, replace_file: bool = False) -> None:
+    def _create_db_from_tabular_file(self, *, replace_file: bool = False) -> None:
         """ Build a SQLite3 DB for inspecting and importing the file """
 
         if os.path.isfile(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db") and os.stat(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db").st_size:

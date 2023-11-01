@@ -106,7 +106,6 @@ class DoImportScheme(LoginRequiredMixin, View):
         actions: list = []
         # First make sure that there is one or more file to work from
         if import_scheme.files.count() == 0:
-            log.debug("No files")
             action: dict = {
                 'name': 'No data file',
                 "description": "You'll need one or more files to import data from.",
@@ -226,7 +225,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                             field_list.append("primary_file_id")
                             start_expanded = urgent = needs_form = needs_primary = hide_file_list = tooltip = True
 
-                    # Present form if files have not been linked togehter, but only if everything is inspected
+                    # Present form if files have not been linked togehter, but only if everything is preinspected
                     elif not import_scheme.files_linked and file.status.preinspected:
                         for file in files:
                             if file.id == int(import_scheme.settings.get("primary_file_id")):

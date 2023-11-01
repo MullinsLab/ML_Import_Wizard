@@ -8,7 +8,7 @@
                 <b>{{ file.name }}</b>
                     {% comment %} Render a small form to collect if the first row is a header row {% endcomment %}
                     {% if file.status.preinspected == False %}
-                        {% if file.type in "tsv,csv" %}
+                        {% if file.base_type in "text,excel" %}
                             <br>The first row contains the following data:
                             <br><span class="attention">{% for field in file.header_row_as_list %}"{{ field }}"{% if not forloop.last %},{% endif %} {% endfor %}</span>
                             <div class="m-4 form-horizontal">
