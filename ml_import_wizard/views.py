@@ -423,10 +423,10 @@ class DoImporterModel(LoginRequiredMixin, View):
             else: 
                 urgent = True
                 start_expanded = True
-            
+        
         return_data = {
-            'name': model_object.fancy_name,
-            'model': model_object.name,
+            "name": model_object.settings.get("override_name", model_object.fancy_name),
+            "model": model_object.name,
             "description": '',
             "fields": field_list,
             "is_key_value_model": is_key_value_model,
