@@ -939,7 +939,7 @@ class ImportSchemeFile(ImportBaseModel):
                 data_frame = pd.read_excel(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}")
         
         if not data_frame.empty:
-            data_frame = data_frame.dropna(how="all", axis=1).map(str)
+            data_frame = data_frame.dropna(how="all", axis=1)
             self.data_frame = data_frame
 
         return data_frame
@@ -964,9 +964,8 @@ class ImportSchemeFile(ImportBaseModel):
             
             if offset_count and index <= offset_count:
                 continue
-
-            yield row.values.flatten().tolist()
-            print(row.values)
+            
+            yield [str(value) if not pd.isna(value) else None for value in row.values]
             returned_count += 1
 
             if specific_rows is not None and returned_count > max_specific_rows:
@@ -1034,7 +1033,9 @@ class ImportSchemeFile(ImportBaseModel):
         
         for row in self.rows(specific_rows=specific_rows, connection=connection):
             for field, attribute in attributes.items():
-                attribute.add(row[field])
+                if row[field] is not None:
+                    print(field, row[field])
+                    attribute.add(row[field])
 
         # Remove any existing fields
         self.fields.all().delete()
