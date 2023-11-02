@@ -1034,7 +1034,6 @@ class ImportSchemeFile(ImportBaseModel):
         for row in self.rows(specific_rows=specific_rows, connection=connection):
             for field, attribute in attributes.items():
                 if row[field] is not None:
-                    print(field, row[field])
                     attribute.add(row[field])
 
         # Remove any existing fields
