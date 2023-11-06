@@ -463,7 +463,6 @@ class ImportScheme(ImportBaseModel):
         row_count = 1
         for row in self.data_rows(columns=columns, limit_count=limit_count, offset_count=offset_count):
 
-            # log.debug(row)
             if not offset_count: offset_count = 0
 
             # skip the row and store it in an ImportSchemeRejectedRow if it's rejected
@@ -490,10 +489,10 @@ class ImportScheme(ImportBaseModel):
                                     working_attributes: dict = {}
 
                                     for field in model.fields:
-                                        
                                         if field.is_foreign_key:
                                             if field.field.related_model.__name__ in working_objects:
                                                 working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+
                                             else:
                                                 working_attributes[field.name] = None
 
@@ -518,13 +517,27 @@ class ImportScheme(ImportBaseModel):
 
                             # Step through fields and fill working_attributes
                             for field in model.fields:
+                                field_value: any = row.get(field.name)
+
                                 if field.is_foreign_key:
-                                    if field.field.related_model.__name__ in working_objects:
-                                        working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+                                    if "foreign_model_lookup" in field.settings:
+                                        temp_object: any = cache_thing.find(key=(model.name, field.foreign_model_lookup_field, field_value), report=False)
+
+                                        if not temp_object:
+                                            temp_object = field.foreign_model_lookup_instance(field_value)
+                                            cache_thing.store(key=(model.name, field.foreign_model_lookup_field, field_value), value=temp_object)
+
+                                        if temp_object:
+                                            working_attributes[field.name] = temp_object
+
                                     else:
-                                        working_attributes[field.name] = None
+                                        if field.field.related_model.__name__ in working_objects:
+                                            working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+
+                                        else:
+                                            working_attributes[field.name] = None
                                 else:
-                                    working_attributes[field.name] = row.get(field.name)
+                                    working_attributes[field.name] = field_value
                                     if working_attributes[field.name] is not None:
                                         is_empty = False
 

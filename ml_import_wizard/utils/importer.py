@@ -2,7 +2,7 @@ import importlib
 
 from django.conf import settings
 from django.apps import apps
-from django.db.models import fields, ForeignKey
+from django.db.models import fields, ForeignKey, Model
 from django.utils.module_loading import import_string
 
 import logging
@@ -117,7 +117,7 @@ class ImporterModel(BaseImporter):
     def shown_fields(self) -> list:
         """ Lists all the fields that should be shown in the importer """
 
-        return [field for field in self.fields if not field.is_foreign_key]
+        return [field for field in self.fields if not (field.is_foreign_key and "foreign_model_lookup" not in field.settings)]
     
     @property
     def is_key_value(self) -> bool:
@@ -136,6 +136,7 @@ class ImporterModel(BaseImporter):
         """ returns the db table name to query against """
 
         return self.model.objects.model._meta.db_table
+    
 
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
@@ -237,6 +238,38 @@ class ImporterField(BaseImporter):
 
         return True
     
+    # @property
+    # def importer(self) -> Importer:
+    #     """ Returns the importer object that this model belongs to """
+
+    #     return self.parent.importer
+    
+    @property
+    def foreign_model_lookup_field(self) -> str:
+        """ Returns the name of the field that the foreign model lookup points to """
+
+        if "foreign_model_lookup" not in self.settings or "select_field" not in self.settings["foreign_model_lookup"]:
+            return None
+        
+        return self.settings["foreign_model_lookup"]["select_field"]
+
+    def foreign_model_lookup_values(self) -> list:
+        """ Returns a list of values to select from """
+
+        lookup: dict = self.settings["foreign_model_lookup"]
+        model = apps.get_model(app_label=lookup["app"], model_name=lookup["model"])
+
+        return model.objects.values_list(lookup["select_field"], flat=True).order_by(lookup["select_field"])[:200]
+
+    def foreign_model_lookup_instance(self, value: any) -> Model:
+        """ Returns the model instance that the foreign model lookup points to """
+
+        lookup: dict = self.settings["foreign_model_lookup"]
+        model = apps.get_model(app_label=lookup["app"], model_name=lookup["model"])
+        instance = model.objects.get(**{lookup["select_field"]: value})
+
+        return instance
+    
 
 def setup_importers() -> None:
     """ Initialize the importer objects from settings """
@@ -285,7 +318,6 @@ def setup_importers() -> None:
                 working_model: ImporterModel = ImporterModel(parent=working_app, name=model_object.__name__, model=model_object, **model_settings)
 
                 for field in [field for field in model_object._meta.get_fields() if field.name not in model.get("exclude_fields", [])]:
-                #for field in filter(lambda field: field.editable and (field.name not in model.get("exclude_fields", [])), model_object._meta.get_fields()):
                     exclude_keys: tuple = ()
                     field_settings: dict = {setting: value for setting, value in model.get("fields", {}).get(field.name, {}).items() if setting not in exclude_keys}
                     

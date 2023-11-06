@@ -399,9 +399,13 @@ class DoImporterModel(LoginRequiredMixin, View):
 
         # Stuff for standard models
         else:
-            # fill field_values
+            # fill field_values for fields that are loading values from the same model
             for field in model_object.settings.get("load_value_fields", []):
                 field_values[field] = model_object.model.objects.values_list(field, flat=True)
+
+            # fill field_values for fields that are loading values from a related model
+            for field in [field for field in model_object.shown_fields if "foreign_model_lookup" in field.settings]:
+                field_values[field.name] = field.foreign_model_lookup_values()
 
             # fill field_list and field_stragegies
             for field in model_object.shown_fields:

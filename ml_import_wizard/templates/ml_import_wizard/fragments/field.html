@@ -1,7 +1,7 @@
 {% load ml_import_wizard_tags %}
 
 {% with strategy=strategies|get_item:field.name %}
-<br><strong>{{ field|verbose_name}}: </strong>
+<br><strong>{% if 'override_name' in field.settings.keys %}{{ field.settings.override_name }}{% else %}{{ field|verbose_name }}{% endif %}: </strong>
 <select 
     onchange="manage_file_field_input('{{ model.name }}__-__{{ field.name }}', '{{ model.name }}')" 
     name='file_field_{{ model.name }}__-__{{ field.name }}' 
@@ -11,7 +11,7 @@
     data-width=30%>
 
     <option></option>
-    {% if field.name in model.settings.load_value_fields %}
+    {% if field.name in field_values %}
         <optgroup label="Values from {{ field.fancy_name }}...">
             {% with values=field_values|get_item:field.name %}
                 {% for value in values %}
