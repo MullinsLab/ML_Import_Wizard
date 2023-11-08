@@ -154,6 +154,8 @@ class ImporterField(BaseImporter):
         else:
             parent.unused_fields.append(self)
 
+        self.is_pseudo: bool = False
+
         # Set up the resolver, which is a function that is used to translate user input into a value for the importer
         self.resolvers: dict = {}
         for resolver in self.settings.get("resolvers", []):
@@ -271,6 +273,34 @@ class ImporterField(BaseImporter):
         return instance
     
 
+class ImporterPseudoField(BaseImporter):
+    """ Holds information for a fake field that is used to collect data for the importer """
+    
+    def __init__(self, *, parent: object = None, name: str = None, **settings) -> None:
+        """ Initialize the object """
+
+        super().__init__(parent, name, **settings)
+        
+        parent.fields.append(self)
+        parent.fields_by_name[self.name] = self
+
+        self.is_pseudo: bool = True
+        self.is_foreign_key: bool = False
+
+        self.field = self.Field(self)
+
+    class Field(object):
+        """  Holds stuff to return when we're pretending to be a field """
+
+        def __init__(self, pseudofield) -> None:
+            """ Initialize the object """
+
+            self.pseudofield: ImporterPseudoField = pseudofield
+
+        @property
+        def verbose_name(self) -> str:
+            return self.pseudofield.fancy_name
+
 def setup_importers() -> None:
     """ Initialize the importer objects from settings """
 
@@ -317,11 +347,16 @@ def setup_importers() -> None:
                 
                 working_model: ImporterModel = ImporterModel(parent=working_app, name=model_object.__name__, model=model_object, **model_settings)
 
+                # Set up real fields
                 for field in [field for field in model_object._meta.get_fields() if field.name not in model.get("exclude_fields", [])]:
                     exclude_keys: tuple = ()
                     field_settings: dict = {setting: value for setting, value in model.get("fields", {}).get(field.name, {}).items() if setting not in exclude_keys}
                     
                     working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field, **field_settings)
+
+                # Set up pseudo fields
+                for pseudofield in [pseudofield for pseudofield in model.get("pseudofields", [])]:
+                    working_pseudofield: ImporterPseudoField = ImporterPseudoField(parent=working_model, name=pseudofield["name"], **pseudofield.get("settings", {}))
 
             # Step back through the models to put them into the correct order for actual data import
             # do until we have as many models in the models_by_import_order list as in the models list
