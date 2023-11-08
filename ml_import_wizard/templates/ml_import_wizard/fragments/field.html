@@ -22,7 +22,7 @@
     {% endif %}
     <optgroup label="Non file values...">
         <option value='**raw_text**' data-content="Specify Text" 
-            {% if model.settings.default_option == "raw_text" or strategy.strategy == "Raw Text" %} selected{% endif %}>
+            {% if strategy.strategy == "Raw Text" or model.settings.default_option == "raw_text" or field.settings.default_option == "raw_text" %} selected{% endif %}>
         </option>
         <option value='**select_first**' data-content="Select First From"{% if strategy.strategy == "Select First" %} selected{% endif %}></option>
         <option value='**split_field**' data-content="Split Field"{% if strategy.strategy == "Split Field" %} selected{% endif %}></option>
@@ -42,7 +42,10 @@
     placeholder="Specify text..." 
     name="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
     id="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
-    {% if model.settings.default_option == "raw_text" and not strategy.strategy or strategy.strategy == "Raw Text" %}{% else %}class="not-visible"{% endif %}
+    {% if model.settings.default_option != "raw_text" and field.settings.default_option != "raw_text" and strategy.strategy != "Raw Text" %}
+        class="not-visible"
+    {% endif %}
+    {% comment %} {% if model.settings.default_option == "raw_text" and not strategy.strategy or strategy.strategy == "Raw Text" %}{% else %}class="not-visible"{% endif %} {% endcomment %}
     oninput="check_submittable('{{ model.name }}')" {% if strategy.strategy == "Raw Text" %}value="{{ strategy.raw_text }}"{% endif %}>
 
 <span id="file_field_{{ model.name }}__-__{{ field.name }}_first_hider"
