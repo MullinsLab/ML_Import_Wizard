@@ -14,7 +14,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem, ImportSchemeFileField
-from ml_import_wizard.utils.simple import sound_user_name, resolve_true, table_resolve_key_values_to_string
+from ml_import_wizard.utils.simple import sound_user_name, resolve_true, table_resolve_key_values_to_string, fancy_name
 from ml_import_wizard.utils.importer import importers
 
 class ManageImports(LoginRequiredMixin, View):
@@ -583,7 +583,7 @@ class PreviewImportScheme(LoginRequiredMixin, View):
 
         table = import_scheme.preview_data_table(limit_count=5)
         
-        columns = json.dumps([{'field': column["name"], 'title': column["name"]} for column in table["columns"]])
+        columns = json.dumps([{"field": column["column_name"], "title": fancy_name(column["name"])} for column in table["columns"]])
         rows = json.dumps(table_resolve_key_values_to_string(table=table["rows"]))
 
         return render(request, "ml_import_wizard/scheme_preview.html", context={"columns": columns, "rows": rows})

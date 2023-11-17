@@ -154,6 +154,11 @@ class ImporterField(BaseImporter):
         else:
             parent.unused_fields.append(self)
 
+        self.model: ImporterModel = parent
+        self.app: ImporterApp = parent.parent
+            
+        self.column_name: str = f"{self.app.name}__{self.model.name}__{self.name}"
+
         self.is_pseudo: bool = False
 
         # Set up the resolver, which is a function that is used to translate user input into a value for the importer
@@ -167,8 +172,7 @@ class ImporterField(BaseImporter):
             resolver_object: dict = {
                 "full_name": resolver.replace(".", "-"),
                 "fancy_name": fancy_name(resolver.split(".")[-1]),
-                "description": function.__doc__,
-                #"function": function,
+                #"description": function.__doc__,
                 "user_input_arguments": [],
                 "field_lookup_arguments": [],
             }
@@ -176,12 +180,15 @@ class ImporterField(BaseImporter):
             if inspect.isclass(resolver_thing):
                 resolver_object["class"] = resolver_thing
                 function = resolver_thing.__call__
+
             else:
                 resolver_object["function"] = resolver_thing
                 function = resolver_thing
+            
+            resolver_object["description"] = resolver_thing.__doc__
 
-            for argument in function.__code__.co_varnames[0:function.__code__.co_kwonlyargcount]:
-
+            # for argument in function.__code__.co_varnames[0:function.__code__.co_kwonlyargcount]:
+            for argument in function.__code__.co_varnames:
                 # User input arguments are looked up in the provided files.  Used to impliment a translation table
                 if argument.startswith("user_input_"):
                     arg_name: str = argument.replace("user_input_", "", 1)
@@ -193,6 +200,7 @@ class ImporterField(BaseImporter):
 
                 # Field lookup arguments return a value from the current processed row
                 elif argument.startswith("field_lookup_"):
+                    print(argument)
                     resolver_object["field_lookup_arguments"].append(argument.replace("field_lookup_", "", 1))
 
             self.resolvers[resolver_object["full_name"]] = resolver_object
@@ -296,6 +304,11 @@ class ImporterPseudoField(BaseImporter):
         
         parent.fields.append(self)
         parent.fields_by_name[self.name] = self
+
+        self.model: ImporterModel = parent
+        self.app: ImporterApp = parent.parent
+            
+        self.column_name: str = f"{self.app.name}__{self.model.name}__{self.name}"
 
         self.is_pseudo: bool = True
         self.is_foreign_key: bool = False

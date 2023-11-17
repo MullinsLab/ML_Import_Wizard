@@ -108,6 +108,6 @@ def table_resolve_key_values_to_string(table: dict=None) -> dict:
     for row in table:
         for field, value in row.items():
             if type(value) is dict:
-                row[field] = ", ".join([f"{key}: {value}" for key, value in value.items() if value and value != "NULL"])
+                row[field] = ", ".join([f"{key}: {val}" for key, val in value.items() if val and val != "NULL"])
 
     return table

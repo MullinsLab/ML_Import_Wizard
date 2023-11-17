@@ -157,7 +157,7 @@ class ImportScheme(ImportBaseModel):
         if self.status.import_defined == False:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has not been set up.")
 
-        table: dict = {"columns": self.data_columns(),
+        table: dict = {"columns": self.data_columns(fix_ambigious_names=True),
                        "rows": []            
         }
 
@@ -166,7 +166,7 @@ class ImportScheme(ImportBaseModel):
 
         return table
 
-    def data_columns(self) -> list[dict[str: any]]:
+    def data_columns(self, *, fix_ambigious_names: bool=False) -> list[dict[str: any]]:
         """ Returns a list of columns for each set of models in the target importer """
         columns: list = []
         column_id: int = 0
@@ -186,6 +186,7 @@ class ImportScheme(ImportBaseModel):
 
                     columns.append({
                         "name": f"{model.name} (key-value)",
+                        "column_name": f"{model.name} (key-value)",
                         "import_scheme_item": import_scheme_item,
                         "importer_model": model,
                     })
@@ -204,11 +205,26 @@ class ImportScheme(ImportBaseModel):
 
                         columns.append({
                             "name": field.name,
+                            "column_name": field.column_name,
                             "import_scheme_item": import_scheme_item,
                             "importer_field": field,
                             "importer_model": model,
                         })
                         column_id += 1
+
+        # Fix ambigious column names
+        if fix_ambigious_names:
+            unique_names: set = set()
+            duplicate_names: set = set()
+
+            for column in columns:
+                if column["name"] in unique_names:
+                    duplicate_names.add(column["name"])
+                else:
+                    unique_names.add(column["name"])
+            
+            for column in [column for column in columns if column["name"] in duplicate_names]:
+                column["name"] = f"{column['importer_model'].name} {column['name']}"
 
         return columns
     
@@ -263,16 +279,18 @@ class ImportScheme(ImportBaseModel):
                 strategy = column["import_scheme_item"].strategy
                 settings = column["import_scheme_item"].settings
 
+                col_name: str = column["column_name"]
+
                 # Model is a key/value model, meaning that the data goes in as multiple rows instead of columns
                 if column["importer_model"].is_key_value:
                     if strategy == "No Data":
-                        continue
+                        continue 
 
-                    row_dict[column["name"]] = {}
+                    row_dict[col_name] = {}
 
                     for key_value_key, key_value_value in column["import_scheme_item"].settings.items():
                         if type(key_value_value) is dict and "key" in key_value_value:
-                            row_dict[column["name"]][key_value_key] = self.key_to_file_field(fields, primary_file, child_files, row, key_value_value["key"])
+                            row_dict[col_name][key_value_key] = self.key_to_file_field(fields, primary_file, child_files, row, key_value_value["key"])
                     
                     continue
 
@@ -281,20 +299,20 @@ class ImportScheme(ImportBaseModel):
                 #     continue
 
                 if strategy == "Raw Text":
-                    row_dict[column["name"]] = settings["raw_text"]
+                    row_dict[col_name] = settings["raw_text"]
 
                 # A value loaded from a table
                 elif strategy == "Table Row":
-                    row_dict[column["name"]] = settings["row"]
+                    row_dict[col_name] = settings["row"]
 
                 elif strategy == "No Data":
-                    row_dict[column["name"]] = None
+                    row_dict[col_name] = None
 
                 # The 'regular' import of a field directly from the file
                 elif strategy == "File Field":
                     key = settings["key"]
 
-                    row_dict[column["name"]] = self.key_to_file_field(fields, primary_file, child_files, row, key)
+                    row_dict[col_name] = self.key_to_file_field(fields, primary_file, child_files, row, key)
                 
                 elif strategy == "Select First":
                     value: str = None
@@ -324,7 +342,7 @@ class ImportScheme(ImportBaseModel):
                         if value:
                             break
                     
-                    row_dict[column["name"]] = value
+                    row_dict[col_name] = value
 
                 elif strategy == "Split Field":
                     key: str = settings["split_key"]
@@ -353,29 +371,29 @@ class ImportScheme(ImportBaseModel):
                             value = child_row[fields[key]["name"]]
 
                     if value and settings["splitter"] in value:
-                        row_dict[column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
+                        row_dict[col_name] = value.split(settings["splitter"])[settings["splitter_position"]-1]
                     else:
-                        row_dict[column["name"]] = value
+                        row_dict[col_name] = value
 
                 # Adjust data
-                if column["name"] in row_dict:
-                    if type(row_dict[column["name"]]) is str and row_dict[column["name"]].lower() == "null":
-                        row_dict[column["name"]] = None
+                if col_name in row_dict:
+                    if type(row_dict[col_name]) is str and row_dict[col_name].lower() == "null":
+                        row_dict[col_name] = None
 
                     if "translate_values" in column["importer_field"].settings:
-                        if row_dict[column["name"]] in column["importer_field"].settings["translate_values"]:
-                            row_dict[column["name"]] = column["importer_field"].settings["translate_values"][row_dict[column["name"]]]
+                        if row_dict[col_name] in column["importer_field"].settings["translate_values"]:
+                            row_dict[col_name] = column["importer_field"].settings["translate_values"][row_dict[col_name]]
 
-                    if column["importer_field"].settings.get("force_case") == "upper" and row_dict[column["name"]]:
-                        row_dict[column["name"]] = row_dict[column["name"]].upper()
+                    if column["importer_field"].settings.get("force_case") == "upper" and row_dict[col_name]:
+                        row_dict[col_name] = row_dict[col_name].upper()
 
-                    if column["importer_field"].settings.get("force_case") == "lower" and row_dict[column["name"]]:
-                        row_dict[column["name"]] = row_dict[column["name"]].lower()
+                    if column["importer_field"].settings.get("force_case") == "lower" and row_dict[col_name]:
+                        row_dict[col_name] = row_dict[col_name].lower()
 
                 # Check the data for rejections and store that in row_dict[***row***setting***][reject_row]
                 if column["importer_model"].settings.get("restriction") == "rejected":
                     if "approved_values" in column["importer_field"].settings:
-                        if row_dict[column["name"]] not in column["importer_field"].settings.get("approved_values", []):
+                        if row_dict[col_name] not in column["importer_field"].settings.get("approved_values", []):
                             if "reject_row" not in row_dict["***row***setting***"]:
                                 row_dict["***row***setting***"]["reject_row"] = []
                             
@@ -404,7 +422,8 @@ class ImportScheme(ImportBaseModel):
                         arguments[f"user_input_{argument['name']}"] = self.key_to_file_field(fields, primary_file, child_files, row, key)
 
                     function: function = None
-                    if resolver["function"]:
+                    
+                    if "function" in resolver:
                         function = resolver["function"]
                     
                     elif resolver["class"]:
@@ -413,14 +432,25 @@ class ImportScheme(ImportBaseModel):
 
                         function = resolver_classes[resolver["full_name"]]
 
-                    if column["importer_field"].settings.get("cacheable", True):
-                        if not (field_value := deferred_cache.find(key=dict_hash(arguments))):
+                    # If the function throws an error, reject the row
+                    try:
+                        if column["importer_field"].settings.get("cacheable", True):
+                            if not (field_value := deferred_cache.find(key=dict_hash(arguments))):
+                                field_value = function(**arguments)
+                                deferred_cache.store(key=dict_hash(arguments), value=field_value)
+                        else:
                             field_value = function(**arguments)
-                            deferred_cache.store(key=dict_hash(arguments), value=field_value)
-                    else:
-                        field_value = function(**arguments)
+                    
+                    except Exception as err:
+                        log.warn(err)
+                        field_value = None
 
-                    row_dict[column["name"]] = field_value
+                        if "reject_row" not in row_dict["***row***setting***"]:
+                                row_dict["***row***setting***"]["reject_row"] = []
+
+                        row_dict["***row***setting***"]["reject_row"].append({column['name']: f"Function error: {err}"})
+
+                    row_dict[column["column_name"]] = field_value
 
             yield row_dict
 
@@ -656,7 +686,7 @@ class ImportScheme(ImportBaseModel):
 
             except IntegrityError as err:
                 # Roll back cache_thing changes if the transaction is rolled back
-                log.debug(err)
+                log.warn(err)
                 cache_thing.rollback()
                 ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
         
