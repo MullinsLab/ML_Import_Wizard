@@ -223,7 +223,7 @@ class ImportScheme(ImportBaseModel):
 
         primary_file: ImportSchemeFile = None
         child_files: dict[int: dict] = {}
-        deferred_strategies: tuple = ("Resolver")
+        deferred_strategies: tuple = ("Resolver",)
 
         # Set up information about the files that are not primary (child files)
         if self.files.count() > 1:
@@ -383,6 +383,8 @@ class ImportScheme(ImportBaseModel):
 
             # Deal with columns that have been deferred
             deferred_cache = LRUCacheThing(items=1000000)
+            resolver_classes: dict = {}
+
             for column in [column for column in columns if column["import_scheme_item"].strategy in (deferred_strategies)]:
                 strategy = column["import_scheme_item"].strategy
                 settings = column["import_scheme_item"].settings
@@ -391,24 +393,40 @@ class ImportScheme(ImportBaseModel):
                 if strategy == "Resolver":
                     arguments: dict = {}
                     resolver = column["importer_field"].resolvers[settings["resolver"]]
-  
+
+                    # Field lookup arguments return a value from the current processed row
                     for argument in resolver["field_lookup_arguments"]:
                         arguments[f"field_lookup_{argument}"] = row_dict[argument]
-
+                    
+                    # User input arguments are looked up in the provided files.  Used to impliment a translation table
                     for argument in resolver["user_input_arguments"]:
                         key: str = settings["arguments"][argument["name"]]["key"]
                         arguments[f"user_input_{argument['name']}"] = self.key_to_file_field(fields, primary_file, child_files, row, key)
 
-                    if not (field_value := deferred_cache.find(key=dict_hash(arguments))):
-                        field_value = resolver["function"](**arguments)
-                        deferred_cache.store(key=dict_hash(arguments), value=field_value)
+                    function: function = None
+                    if resolver["function"]:
+                        function = resolver["function"]
+                    
+                    elif resolver["class"]:
+                        if resolver["full_name"] not in resolver_classes:
+                            resolver_classes[resolver["full_name"]] = resolver["class"]()
+
+                        function = resolver_classes[resolver["full_name"]]
+
+                    if column["importer_field"].settings.get("cacheable", True):
+                        if not (field_value := deferred_cache.find(key=dict_hash(arguments))):
+                            field_value = function(**arguments)
+                            deferred_cache.store(key=dict_hash(arguments), value=field_value)
+                    else:
+                        field_value = function(**arguments)
 
                     row_dict[column["name"]] = field_value
 
             yield row_dict
 
-    def key_to_file_field(self, fields, primary_file, child_files, row, key):
-        """ Result of automatic extraction.  Need to get rid of the side effect of storing things in the fields variable """
+    def key_to_file_field(self, fields: dict, primary_file, child_files, row, key):
+        """ Gets values out of the files
+        Result of automatic extraction.  Need to get rid of the side effect of storing things in the fields variable """
 
         field: str = ""
 

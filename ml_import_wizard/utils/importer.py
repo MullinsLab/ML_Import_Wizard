@@ -1,8 +1,8 @@
-import importlib
+import inspect
 
 from django.conf import settings
 from django.apps import apps
-from django.db.models import fields, ForeignKey, Model
+from django.db.models import ForeignKey, Model
 from django.utils.module_loading import import_string
 
 import logging
@@ -158,19 +158,31 @@ class ImporterField(BaseImporter):
 
         # Set up the resolver, which is a function that is used to translate user input into a value for the importer
         self.resolvers: dict = {}
+        
         for resolver in self.settings.get("resolvers", []):
-            function = import_string(resolver)
+            resolver_thing = import_string(resolver)
+
+            function: function = None
 
             resolver_object: dict = {
                 "full_name": resolver.replace(".", "-"),
                 "fancy_name": fancy_name(resolver.split(".")[-1]),
                 "description": function.__doc__,
-                "function": function,
+                #"function": function,
                 "user_input_arguments": [],
                 "field_lookup_arguments": [],
             }
 
+            if inspect.isclass(resolver_thing):
+                resolver_object["class"] = resolver_thing
+                function = resolver_thing.__call__
+            else:
+                resolver_object["function"] = resolver_thing
+                function = resolver_thing
+
             for argument in function.__code__.co_varnames[0:function.__code__.co_kwonlyargcount]:
+
+                # User input arguments are looked up in the provided files.  Used to impliment a translation table
                 if argument.startswith("user_input_"):
                     arg_name: str = argument.replace("user_input_", "", 1)
                     arg_object: dict = {
@@ -179,6 +191,7 @@ class ImporterField(BaseImporter):
                     }
                     resolver_object["user_input_arguments"].append(arg_object)
 
+                # Field lookup arguments return a value from the current processed row
                 elif argument.startswith("field_lookup_"):
                     resolver_object["field_lookup_arguments"].append(argument.replace("field_lookup_", "", 1))
 
@@ -300,6 +313,7 @@ class ImporterPseudoField(BaseImporter):
         @property
         def verbose_name(self) -> str:
             return self.pseudofield.fancy_name
+
 
 def setup_importers() -> None:
     """ Initialize the importer objects from settings """
