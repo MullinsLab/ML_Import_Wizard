@@ -3,6 +3,7 @@ import inspect
 from django.conf import settings
 from django.apps import apps
 from django.db.models import ForeignKey, Model
+from django.db.models.fields import DateField
 from django.utils.module_loading import import_string
 
 import logging
@@ -159,6 +160,11 @@ class ImporterField(BaseImporter):
             
         self.column_name: str = f"{self.app.name}__{self.model.name}__{self.name}"
 
+        if isinstance(self.field, DateField):
+            self.is_date: bool = True
+        else:
+            self.is_date: bool = False
+
         self.is_pseudo: bool = False
 
         # Set up the resolver, which is a function that is used to translate user input into a value for the importer
@@ -187,7 +193,6 @@ class ImporterField(BaseImporter):
             
             resolver_object["description"] = resolver_thing.__doc__
 
-            # for argument in function.__code__.co_varnames[0:function.__code__.co_kwonlyargcount]:
             for argument in function.__code__.co_varnames:
                 # User input arguments are looked up in the provided files.  Used to impliment a translation table
                 if argument.startswith("user_input_"):
@@ -260,12 +265,6 @@ class ImporterField(BaseImporter):
             return False
 
         return True
-    
-    # @property
-    # def importer(self) -> Importer:
-    #     """ Returns the importer object that this model belongs to """
-
-    #     return self.parent.importer
     
     @property
     def foreign_model_lookup_field(self) -> str:
@@ -365,7 +364,7 @@ def setup_importers() -> None:
                 if deep_exists(dictionary=app, keys=["models", model_object.__name__]):
                     model = app["models"].get(model_object.__name__, {})
 
-                # Get settingsfor the model and save them in the object, except keys in exclude_keys
+                # Get settings for the model and save them in the object, except keys in exclude_keys
                 exclude_keys: tuple = ("exclude_fields", "fields")
                 model_settings: dict = {}
 

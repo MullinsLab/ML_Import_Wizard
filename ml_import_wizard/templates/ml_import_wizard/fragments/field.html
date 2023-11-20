@@ -21,7 +21,7 @@
         </optgroup>
     {% endif %}
     <optgroup label="Non file values...">
-        <option value='**raw_text**' data-content="Specify Text" 
+        <option value='**raw_text**' data-content={% if not field.is_date %}"Specify Text"{% else %}"Specify Date"{% endif %}
             {% if strategy.strategy == "Raw Text" or model.settings.default_option == "raw_text" or field.settings.default_option == "raw_text" %} selected{% endif %}>
         </option>
         <option value='**select_first**' data-content="Select First From"{% if strategy.strategy == "Select First" %} selected{% endif %}></option>
@@ -38,8 +38,12 @@
     </optgroup>
 </select> 
 <input 
-    type="text" 
-    placeholder="Specify text..." 
+    {% if not field.is_date %}
+        type="text" 
+        placeholder="Specify text..." 
+    {% else %}
+        type="date" 
+    {% endif %}
     name="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
     id="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
     {% if model.settings.default_option != "raw_text" and field.settings.default_option != "raw_text" and strategy.strategy != "Raw Text" %}
