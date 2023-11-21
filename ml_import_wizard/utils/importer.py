@@ -205,7 +205,6 @@ class ImporterField(BaseImporter):
 
                 # Field lookup arguments return a value from the current processed row
                 elif argument.startswith("field_lookup_"):
-                    print(argument)
                     resolver_object["field_lookup_arguments"].append(argument.replace("field_lookup_", "", 1))
 
             self.resolvers[resolver_object["full_name"]] = resolver_object
