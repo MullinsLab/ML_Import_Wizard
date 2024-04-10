@@ -69,7 +69,7 @@ class NewImportScheme(LoginRequiredMixin, View):
         """ Save the new import """
 
         importer: str = kwargs["importer_slug"]
-        form: form = NewImportSchemeForm(request.POST)
+        form: NewImportSchemeForm = NewImportSchemeForm(request.POST)
 
         if form.is_valid():
             import_scheme = ImportScheme(name=form.cleaned_data['name'], description=form.cleaned_data["description"], importer=importer, user=request.user)
@@ -122,7 +122,7 @@ class DoImportScheme(LoginRequiredMixin, View):
     
     
 class ListImportSchemeItems(LoginRequiredMixin, View):
-    """' List the ImportSchemeItems for a particular ImportScheme """
+    """ List the ImportSchemeItems for a particular ImportScheme """
 
     def get(self, request, *args, **kwargs):
         """ Produce the list of ImportSchemeItems  """
@@ -322,7 +322,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
                 return JsonResponse({'saved': True})
             else:
-                form: form = UploadFileForImportForm(request.POST, request.FILES)
+                form: UploadFileForImportForm = UploadFileForImportForm(request.POST, request.FILES)
                 # file: file = request.FILES['file']
 
                 if form.is_valid():
@@ -544,7 +544,7 @@ class DoImporterModel(LoginRequiredMixin, View):
                     strategy = "Resolver"
 
                     settings["resolver"] = resolver
-                    settings["arguments"]: list = {}
+                    settings["arguments"] = {}
 
                     for argument, argument_value in [(argument.split(":")[-1], argument_value) for argument, argument_value in values.items() if argument.startswith(value)]:
                         argument_object: dict = {
