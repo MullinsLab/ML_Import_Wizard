@@ -1,3 +1,8 @@
+from pathlib import Path
+from itertools import islice
+import os.path, sqlite3, pandas as pd
+from typing import Generator, Callable
+
 from django.conf import settings
 from django.db import models, IntegrityError, transaction
 from django.db.models.functions import Lower
@@ -5,10 +10,6 @@ from django.db.models import Count
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
-
-from pathlib import Path
-from itertools import islice
-import os.path, sqlite3, pandas as pd
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -228,7 +229,7 @@ class ImportScheme(ImportBaseModel):
 
         return columns
     
-    def data_rows(self, *, columns: list=None, limit_count: int=None, offset_count: int=0) -> dict[str: any]:
+    def data_rows(self, *, columns: list=None, limit_count: int=None, offset_count: int=0) -> Generator[dict[str: any], None, None]:
         """ Yields a row for each set of models in the target importer """
 
         # Fields holds a list of ImportSchemeItem.ids and the associated ImportSchemeFile.id and ImportSchemeFileField names
@@ -421,7 +422,7 @@ class ImportScheme(ImportBaseModel):
                         key: str = settings["arguments"][argument["name"]]["key"]
                         arguments[f"user_input_{argument['name']}"] = self.key_to_file_field(fields, primary_file, child_files, row, key)
 
-                    function: function = None
+                    function: Callable = None
                     
                     if "function" in resolver:
                         function = resolver["function"]
@@ -888,7 +889,7 @@ class ImportSchemeFile(ImportBaseModel):
         elif self.base_type in ["text", "excel"]:
             self._inspect_tabular_file(ignore_status=ignore_status)
 
-    def rows(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> dict[str: any]:
+    def rows(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> Generator[dict[str: any], None, None]:
         """ Iterates through the rows of the file, returning a dict for each row """
 
         if self.base_type == "gff":
@@ -965,7 +966,7 @@ class ImportSchemeFile(ImportBaseModel):
 
         return None
 
-    def _rows_from_db(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> list:
+    def _rows_from_db(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> Generator[list, None, None]:
         """ Iterates through the rows of select from an SQLite3 db, returning a list for each row """
 
         if not connection: connection = self._get_db_connection()
@@ -1005,7 +1006,7 @@ class ImportSchemeFile(ImportBaseModel):
 
         return data_frame
 
-    def _rows_from_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False) -> list:
+    def _rows_from_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False) -> Generator[list, None, None]:
         """ Iterates through the rows of a text or excel file, returning a list for each row """
     
         read_count: int = 0
@@ -1035,7 +1036,7 @@ class ImportSchemeFile(ImportBaseModel):
             if limit_count and returned_count >= limit_count:
                 break
 
-    def _rows_from_gff_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None) -> dict[str: any]:
+    def _rows_from_gff_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None) -> Generator[dict[str: any], None, None]:
         """ Iterates through the rows of the GFF file, returning a dict for each row """
 
         self._confirm_file_is_ready(inspected=True)
