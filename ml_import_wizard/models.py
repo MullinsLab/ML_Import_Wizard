@@ -274,7 +274,6 @@ class ImportScheme(ImportBaseModel):
         for row in primary_file.rows(limit_count=limit_count, offset_count=offset_count):
             row_dict: dict = {"***row***setting***": {}}
 
-            #for column in columns:
             # Go through columns that do not need to be deferred until after other columns are resolved
             for column in [column for column in columns if column["import_scheme_item"].strategy not in (deferred_strategies)]:
                 strategy = column["import_scheme_item"].strategy
@@ -312,7 +311,6 @@ class ImportScheme(ImportBaseModel):
                 # The 'regular' import of a field directly from the file
                 elif strategy == "File Field":
                     key = settings["key"]
-
                     row_dict[col_name] = self.key_to_file_field(fields, primary_file, child_files, row, key)
                 
                 elif strategy == "Select First":
@@ -398,7 +396,7 @@ class ImportScheme(ImportBaseModel):
                             if "reject_row" not in row_dict["***row***setting***"]:
                                 row_dict["***row***setting***"]["reject_row"] = []
                             
-                            row_dict["***row***setting***"]["reject_row"].append({column['name']: row_dict[column['name']]})
+                            row_dict["***row***setting***"]["reject_row"].append({column['name']: row_dict[column['column_name']]})
 
             # Deal with columns that have been deferred
             deferred_cache = LRUCacheThing(items=1000000)
@@ -566,7 +564,7 @@ class ImportScheme(ImportBaseModel):
 
                             # Step through fields and fill working_attributes
                             for field in model.fields:
-                                field_value: any = row.get(field.name)
+                                field_value: any = row.get(field.column_name)
 
                                 if field.is_foreign_key:
                                     if "foreign_model_lookup" in field.settings:
@@ -685,12 +683,13 @@ class ImportScheme(ImportBaseModel):
                                                                 pkey_str = working_objects[model.name].pk,
                                         ).save()
 
+
             except IntegrityError as err:
                 # Roll back cache_thing changes if the transaction is rolled back
                 log.warn(err)
                 cache_thing.rollback()
                 ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
-        
+
             row_count += 1
 
     def description_object(self) -> str:
