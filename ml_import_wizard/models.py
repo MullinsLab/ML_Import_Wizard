@@ -565,6 +565,10 @@ class ImportScheme(ImportBaseModel):
                             # Step through fields and fill working_attributes
                             for field in model.fields:
                                 field_value: any = row.get(field.column_name)
+                                
+                                # If the field_value isn't blank and the field is an integer field, convert the value to an integer
+                                if field_value and field.field.get_internal_type() == "IntegerField" and not isinstance(field_value, int):
+                                    field_value = int(float(field_value))
 
                                 if field.is_foreign_key:
                                     if "foreign_model_lookup" in field.settings:
