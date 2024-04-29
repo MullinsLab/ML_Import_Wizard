@@ -3,3 +3,57 @@ ML Import Wizard is a user facing Django app that takes flat square data files, 
 It is designed to take input data files as they are, associating fields with Django model attributes, including the ability to combine, split, and transform data in fields to fit them into the ORM.
 
 As a user facing tool, it is designed to allow end users to manage their own data imports without having to go to the database back end or use the Admin tools.
+
+Sample settings structure:
+```python
+ML_IMPORT_WIZARD = {
+    "Working_Files_Dir": os.path.join("/", env("WORKING_FILES_DIR"), ""),
+    "Logger": "app",
+    "Log_Exceptions": True,
+    "Setup_On_Start": True,
+    'Importers': {
+        'Genome': {
+            'name': 'Genome',
+            'description': 'Import an entire genome',
+            'apps': [
+                {
+                    'name': 'core',
+                    'include_models': ['GenomeSpecies', "GenomeVersion", "GeneType", "FeatureType", "Feature", "FeatureLocation"],
+                    # 'exclude_models': ['Feature'],
+                    'models': {
+                        'GenomeSpecies': {
+                            'restriction': 'deferred',
+                            "load_value_fields": ["genome_species_name"],
+                        },
+                        "GenomeVersion": {
+                            "exclude_fields": ['external_gene_id_source'],
+                            "default_option": "raw_text",
+                            "load_value_fields": ["genome_version_name"],
+                        },
+                        'FeatureType': {
+                            'restriction': 'rejected',
+                            'fields': {
+                                'feature_type_name': {
+                                    'approved_values': ['CDS', 'exon', 'region', 'gene', 'start_codon', 'stop_codon']
+                                },
+                            },
+                        },
+                        "Feature": {
+                            # "exclude_fields": ["external_gene_id"],
+                        },
+                        'FeatureLocation': {
+                            "fields": {
+                                "feature_orientation": {
+                                    "critical": True,
+                                    "translate_values": {"+": "F", "-": "R"},
+                                    "force_case": "upper",  
+                                },
+                            },
+                        },
+                    },
+                },
+            ],
+        },
+    }
+}
+```
