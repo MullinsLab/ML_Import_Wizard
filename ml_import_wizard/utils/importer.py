@@ -1,5 +1,7 @@
 import inspect
 
+from typing import Callable
+
 from django.conf import settings
 from django.apps import apps
 from django.db.models import ForeignKey, Model
@@ -173,7 +175,7 @@ class ImporterField(BaseImporter):
         for resolver in self.settings.get("resolvers", []):
             resolver_thing = import_string(resolver)
 
-            function: function = None
+            function: Callable = None
 
             resolver_object: dict = {
                 "full_name": resolver.replace(".", "-"),
