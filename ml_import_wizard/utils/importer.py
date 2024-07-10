@@ -169,7 +169,7 @@ class ImporterField(BaseImporter):
 
         self.is_pseudo: bool = False
 
-        # Set up the resolver, which is a function that is used to translate user input into a value for the importer
+        # Set up the resolver, which is a function (from outside ML_Import_Wizard) that is used to translate user input into a value for the importer
         self.resolvers: dict = {}
         
         for resolver in self.settings.get("resolvers", []):
