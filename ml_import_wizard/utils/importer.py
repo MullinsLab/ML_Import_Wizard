@@ -12,6 +12,7 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from weakref import proxy
+from dateutil.parser import parse
 
 from ml_import_wizard.utils.simple import fancy_name, deep_exists
 from ml_import_wizard.exceptions import UnresolvedInspectionOrder
@@ -103,6 +104,38 @@ class ImporterModel(BaseImporter):
             if "value_field" not in self.settings:
                 self.settings["value_field"] = "value"
 
+        # Set up the instance finder, which is a function that is used to find an instance of an object when the general algorythm doesn't work
+        self.instance_finder: dict = None
+        
+        if instance_finder := self.settings.get("instance_finder"):
+            instance_finder_thing = import_string(instance_finder)
+
+            function: Callable = None
+
+            instance_finder_object: dict = {
+                "full_name": instance_finder.replace(".", "-"),
+                "fancy_name": fancy_name(instance_finder.split(".")[-1]),
+                "user_input_arguments": [],
+                "field_lookup_arguments": [],
+            }
+
+            if inspect.isclass(instance_finder_thing):
+                instance_finder_object["class"] = instance_finder_thing
+                function = instance_finder_thing.__call__
+
+            else:
+                instance_finder_object["function"] = instance_finder_thing
+                function = instance_finder_thing
+            
+            instance_finder_object["description"] = instance_finder_thing.__doc__
+
+            for argument in function.__code__.co_varnames:
+                # Field lookup arguments return a value from the current processed row
+                if argument.startswith("field_lookup_"):
+                    instance_finder_object["field_lookup_arguments"].append(argument.replace("field_lookup_", "", 1))
+
+            self.instance_finder = instance_finder_object
+
     @property
     def foreign_key_fields(self) -> list:
         """ Returns a list of fields that refer to foreign keys """
@@ -169,7 +202,7 @@ class ImporterField(BaseImporter):
 
         self.is_pseudo: bool = False
 
-        # Set up the resolver, which is a function (from outside ML_Import_Wizard) that is used to translate user input into a value for the importer
+        # Set up the resolver, which is a function that is used to translate user input into a value for the importer
         self.resolvers: dict = {}
         
         for resolver in self.settings.get("resolvers", []):
@@ -292,6 +325,14 @@ class ImporterField(BaseImporter):
         instance = model.objects.get(**{lookup["select_field"]: value})
 
         return instance
+    
+    def clean_data(self, data: str) -> str:
+        """ Clean the data so it is formatted corectly for the database """
+
+        if self.is_date and data:
+            return str(parse(data).date())
+
+        return data
     
 
 class ImporterPseudoField(BaseImporter):

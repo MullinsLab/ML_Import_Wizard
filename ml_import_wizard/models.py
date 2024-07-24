@@ -6,7 +6,6 @@ from typing import Generator, Callable
 from django.conf import settings
 from django.db import models, IntegrityError, transaction
 from django.db.models.functions import Lower
-from django.db.models import Count
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
@@ -451,6 +450,10 @@ class ImportScheme(ImportBaseModel):
 
                     row_dict[column["column_name"]] = field_value
 
+            # Step through columns and clean the data
+            for column in columns:
+                row_dict[column["column_name"]] = column["importer_field"].clean_data(row_dict[column["column_name"]])
+
             yield row_dict
 
     def key_to_file_field(self, fields: dict, primary_file, child_files, row, key):
@@ -555,6 +558,19 @@ class ImportScheme(ImportBaseModel):
                                         model.model(**working_attributes).save()
 
                                 continue
+
+                            if model.instance_finder:
+                                # Look up the model using the instance_finder if it's available
+                                
+                                instance: object = None
+                                arguments: dict = {f"field_lookup_{argument}": row.get(argument) for argument in model.instance_finder["field_lookup_arguments"]}
+                                
+                                if "class" in model.instance_finder:
+                                    instance = model.instance_finder["class"].__call__(**arguments)
+
+                                elif "function" in model.instance_finder:
+                                    if instance := model.instance_finder["function"](**arguments):
+                                        working_objects[model.name] = instance
                             
                             # working_attributes holds the attributes (field/value pairs) needed to build the current model
                             working_attributes: dict = {}
@@ -603,49 +619,50 @@ class ImportScheme(ImportBaseModel):
 
                                 unique_sets.append(tuple(full_unique_set))
 
-                            for unique_set in unique_sets:
-                                test_attributes: dict[str, any] = {}
-                                test_attributes_string: str = ""
-                                key_value_attributes: dict[str, dict[str, any]] = {}
+                            if model.name not in working_objects:
+                                for unique_set in unique_sets:
+                                    test_attributes: dict[str, any] = {}
+                                    test_attributes_string: str = ""
+                                    key_value_attributes: dict[str, dict[str, any]] = {}
 
-                                if "***Key_Value_Models***" in unique_set:
-                                    for key_value_model in model.key_value_children:
-                                        key_value_attributes[key_value_model.name] = {key: value for key, value in row.get(f"{key_value_model.name} (key-value)", {}).items() if value and value != "NULL"}
-                                        test_attributes_string += f"|{key_value_model.name}:{dict_hash(key_value_attributes[key_value_model.name])}|"
-
-                                for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
-                                    test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
-                                    test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
-
-                                temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
-
-                                if temp_object:
-                                    working_objects[model.name] = temp_object
-
-                                if model.name not in working_objects or not working_objects[model.name]:
-                                    temp_object = model.model.objects.filter(**test_attributes)
-
-                                    # For key/value models we need to annotate the queryset with the key/values
-                                    if key_value_attributes:
+                                    if "***Key_Value_Models***" in unique_set:
                                         for key_value_model in model.key_value_children:
-                                            temp_object = temp_object.annotate(key_value_count=Count(key_value_model.table)).filter(key_value_count=len(key_value_attributes[key_value_model.name]))
-                                            
-                                            for key, value in key_value_attributes[key_value_model.name].items():
-                                                attributes: dict = {
-                                                    f"{key_value_model.table}__{key_value_model.settings['key_field']}": key,
-                                                    f"{key_value_model.table}__{key_value_model.settings['value_field']}": value,
-                                                }
-                                            
-                                                temp_object = temp_object.filter(**attributes)
+                                            key_value_attributes[key_value_model.name] = {key: value for key, value in row.get(f"{key_value_model.name} (key-value)", {}).items() if value and value != "NULL"}
+                                            test_attributes_string += f"|{key_value_model.name}:{dict_hash(key_value_attributes[key_value_model.name])}|"
 
-                                    temp_object = temp_object.first()
+                                    for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
+                                        test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
+                                        test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
+                                        
+                                    temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
 
                                     if temp_object:
                                         working_objects[model.name] = temp_object
-                                        cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name], transaction=True)
-                                    
-                                if model.name in working_objects:
-                                    continue
+
+                                    if model.name not in working_objects or not working_objects[model.name]:
+                                        temp_object = model.model.objects.filter(**test_attributes)
+
+                                        # For key/value models we need to annotate the queryset with the key/values
+                                        if key_value_attributes:
+                                            for key_value_model in model.key_value_children:
+                                                temp_object = temp_object.annotate(key_value_count=Count(key_value_model.table)).filter(key_value_count=len(key_value_attributes[key_value_model.name]))
+                                                
+                                                for key, value in key_value_attributes[key_value_model.name].items():
+                                                    attributes: dict = {
+                                                        f"{key_value_model.table}__{key_value_model.settings['key_field']}": key,
+                                                        f"{key_value_model.table}__{key_value_model.settings['value_field']}": value,
+                                                    }
+                                                
+                                                    temp_object = temp_object.filter(**attributes)
+
+                                        temp_object = temp_object.first()
+
+                                        if temp_object:
+                                            working_objects[model.name] = temp_object
+                                            cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name], transaction=True)
+                                        
+                                    if model.name in working_objects:
+                                        continue
                         
                             # Ensure that if the data for a field is None that the field is nullable
                             if model.name not in working_objects:
@@ -929,7 +946,7 @@ class ImportSchemeFile(ImportBaseModel):
             data_frame: pd.DataFrame = self._get_file_as_dataframe()
             return data_frame.columns.tolist()
 
-    def find_row_by_key(self, *, field: str=None, key: str=None, cache: LRUCacheThing=None, connection=None) -> list|None:
+    def find_row_by_key(self, *, field: str|list=None, key: str=None, cache: LRUCacheThing=None, connection=None) -> list|None:
         """ Find the first row that has a field that equals key.  Uses a cache object if it's given one """
 
         if not field or not key: 
