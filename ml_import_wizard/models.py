@@ -531,6 +531,8 @@ class ImportScheme(ImportBaseModel):
                         working_objects: dict[str: dict[str: any]] = {}
 
                         for model in app.models_by_import_order:
+                            
+                            log.warn(f"Working on model {model.name}")
 
                             if model.is_key_value:
 
@@ -619,8 +621,10 @@ class ImportScheme(ImportBaseModel):
 
                                 unique_sets.append(tuple(full_unique_set))
 
-                            if model.name not in working_objects:
+                            # Skip if there is a function for getting the instance
+                            if model.settings.get("instance_finder"):
                                 for unique_set in unique_sets:
+                                    log.warn(f"Working on unique set {unique_set}")
                                     test_attributes: dict[str, any] = {}
                                     test_attributes_string: str = ""
                                     key_value_attributes: dict[str, dict[str, any]] = {}
@@ -631,14 +635,20 @@ class ImportScheme(ImportBaseModel):
                                             test_attributes_string += f"|{key_value_model.name}:{dict_hash(key_value_attributes[key_value_model.name])}|"
 
                                     for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
-                                        test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
+                                        # Use case insensitive test if case_insensitive_compare is true
+                                        if model.settings.get("case_insensitive_compare"):
+                                            test_attributes[f"{getattr(unique_field, 'name', unique_field)}__iexact"] = working_attributes[unique_field]
+                                        else:
+                                            test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
+
                                         test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
                                         
                                     temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
 
                                     if temp_object:
                                         working_objects[model.name] = temp_object
-
+                                    
+                                    log.warn(f"Test attributes: {test_attributes}")
                                     if model.name not in working_objects or not working_objects[model.name]:
                                         temp_object = model.model.objects.filter(**test_attributes)
 
