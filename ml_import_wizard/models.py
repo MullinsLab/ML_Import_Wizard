@@ -531,8 +531,6 @@ class ImportScheme(ImportBaseModel):
                         working_objects: dict[str: dict[str: any]] = {}
 
                         for model in app.models_by_import_order:
-                            
-                            log.warn(f"Working on model {model.name}")
 
                             if model.is_key_value:
 
@@ -622,9 +620,10 @@ class ImportScheme(ImportBaseModel):
                                 unique_sets.append(tuple(full_unique_set))
 
                             # Skip if there is a function for getting the instance
-                            if model.settings.get("instance_finder"):
+                            if not model.settings.get("instance_finder"):
+                                
                                 for unique_set in unique_sets:
-                                    log.warn(f"Working on unique set {unique_set}")
+                                    
                                     test_attributes: dict[str, any] = {}
                                     test_attributes_string: str = ""
                                     key_value_attributes: dict[str, dict[str, any]] = {}
@@ -636,7 +635,8 @@ class ImportScheme(ImportBaseModel):
 
                                     for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
                                         # Use case insensitive test if case_insensitive_compare is true
-                                        if model.settings.get("case_insensitive_compare"):
+                                        
+                                        if model.fields_by_name[unique_field].settings.get("case_insensitive_compare") == True:
                                             test_attributes[f"{getattr(unique_field, 'name', unique_field)}__iexact"] = working_attributes[unique_field]
                                         else:
                                             test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
@@ -648,7 +648,6 @@ class ImportScheme(ImportBaseModel):
                                     if temp_object:
                                         working_objects[model.name] = temp_object
                                     
-                                    log.warn(f"Test attributes: {test_attributes}")
                                     if model.name not in working_objects or not working_objects[model.name]:
                                         temp_object = model.model.objects.filter(**test_attributes)
 
@@ -677,7 +676,7 @@ class ImportScheme(ImportBaseModel):
                             # Ensure that if the data for a field is None that the field is nullable
                             if model.name not in working_objects:
                                 for field in model.fields:
-                                    if working_attributes[field.name] is None and field.not_nullable:
+                                    if field.name not in working_attributes or working_attributes[field.name] is None and field.not_nullable:
                                         working_objects[model.name] = None
 
                                         if model.settings.get("critical"):
@@ -714,7 +713,8 @@ class ImportScheme(ImportBaseModel):
                                                                 pkey_str = working_objects[model.name].pk,
                                         ).save()
 
-
+                    raise IntegrityError()
+            
             except IntegrityError as err:
                 # Roll back cache_thing changes if the transaction is rolled back
                 log.warn(err)

@@ -322,7 +322,11 @@ class ImporterField(BaseImporter):
 
         lookup: dict = self.settings["foreign_model_lookup"]
         model = apps.get_model(app_label=lookup["app"], model_name=lookup["model"])
-        instance = model.objects.get(**{lookup["select_field"]: value})
+        
+        try:
+            instance = model.objects.get(**{lookup["select_field"]: value})
+        except model.DoesNotExist:
+            instance = None
 
         return instance
     
