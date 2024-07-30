@@ -712,8 +712,6 @@ class ImportScheme(ImportBaseModel):
                                                                 pkey_name = working_objects[model.name].pk.name,
                                                                 pkey_str = working_objects[model.name].pk,
                                         ).save()
-
-                    raise IntegrityError()
             
             except IntegrityError as err:
                 # Roll back cache_thing changes if the transaction is rolled back
