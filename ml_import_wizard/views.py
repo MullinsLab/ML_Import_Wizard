@@ -150,7 +150,9 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
             
             for app in importer.apps:
                 for model in app.models:
-                    import_scheme_items.append(f"{app.name}-{model.name}")
+                    # Only include fields that have something to collect (non foreign key fields)
+                    if [field for field in model.fields if not field.is_foreign_key]:
+                        import_scheme_items.append(f"{app.name}-{model.name}")
 
         return JsonResponse({
             'import_scheme_items': import_scheme_items
