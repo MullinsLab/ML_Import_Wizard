@@ -35,6 +35,10 @@ class BaseImporter(object):
     def __str__(self):
         """ Return the name attribute as __str__ """
         return f"{self.__class__}: {self.name}"
+    
+    def __repr__(self):
+        """ Return the name attribute as __repr__ """
+        return f"{self.__class__}: {self.name}"
 
     @property
     def fancy_name(self) -> str:
@@ -460,3 +464,4 @@ def setup_importers() -> None:
                     log.debug([object.name for object in working_app.models_by_import_order])
                     raise UnresolvedInspectionOrder("Order of importing models can't be resolved.  Potential circular ForeignKeys?")
 
+            log.warn(working_app.models_by_import_order)
