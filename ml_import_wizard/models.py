@@ -642,10 +642,17 @@ class ImportScheme(ImportBaseModel):
                                             test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
 
                                         test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
-                                        
+                                    
+                                    if "find_instance" in model.settings.get("debug", []):
+                                        log.debug(f"{model.name}: Test attributes: {test_attributes}")
+                                        log.debug(f"{model.name}: Test attributes string: {test_attributes_string}")
+
                                     temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
 
                                     if temp_object:
+                                        if "find_instance" in model.settings.get("debug", []):
+                                            log.debug(f"{model.name}: Found object in cache")
+
                                         working_objects[model.name] = temp_object
                                     
                                     if model.name not in working_objects or not working_objects[model.name]:
@@ -667,6 +674,9 @@ class ImportScheme(ImportBaseModel):
                                         temp_object = temp_object.first()
 
                                         if temp_object:
+                                            if "find_instance" in model.settings.get("debug", []):
+                                                log.debug(f"{model.name}: Found object in database")
+
                                             working_objects[model.name] = temp_object
                                             cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name], transaction=True)
                                         
@@ -693,8 +703,10 @@ class ImportScheme(ImportBaseModel):
 
                             # If the model is not in working_objects save it to the database, add it to working_objects, and cache it
                             if model.name not in working_objects:
-                                working_objects[model.name] = model.model(**working_attributes)
-                                working_objects[model.name].save()
+                                if "create_instance" in model.settings.get("debug", []):
+                                    log.debug(f"{model.name}: Saving object to database: {working_attributes}")
+
+                                working_objects[model.name] = model.model.objects.create(**working_attributes)
                                 
                                 # If this is a deferred model save an ImportSchemeDeferredRows
                                 if model.settings.get("restriction") == "deferred":
