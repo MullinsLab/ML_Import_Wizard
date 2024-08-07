@@ -13,7 +13,8 @@
     <fieldset class="accordion" id="import_scheme_accordion">
         <legend id='accordion_container'>{{import_scheme}}</legend>
     </fieldset>
-    <button type="button" class="btn btn-primary mt-2 mb-2 disabled">Preview Data</button>
+    {% comment %} <button type="button" class="btn btn-primary mt-2 mb-2 disabled" id="preview_button">Preview Data</button> {% endcomment %}
+    <a role="button" class="btn btn-primary mt-2 mb-2 disabled" id="preview_button" href="{% url 'ml_import_wizard:scheme' import_scheme_id=import_scheme.id %}\preview">Preview Data</a>
 </div>
 
 <script type="text/javascript">

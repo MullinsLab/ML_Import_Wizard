@@ -45,6 +45,25 @@ class ImportScheme {
             };
         });
     };
+
+    check_previewable(){
+        if (this.is_submitted()){
+            $("#preview_button").removeClass('disabled');
+        }
+        else {
+            $("#preview_button").addClass('disabled');
+        }
+    }
+
+    is_submitted(){
+        // Check to see if all the items are ready to be previewd
+        for (let item in this.items){
+            if (! this.items[item].submitted){
+                return false;
+            };
+        };
+        return true;
+    }
 };
 
 class ImportSchemeItem{
@@ -61,6 +80,7 @@ class ImportSchemeItem{
     tooltip;                    // If true, executes $('[data-toggle="tooltip"]').tooltip()
     fields = [];                // Holds a list of all the fields in this item
     model;                      // name of the model this item represents
+    submitted;                  // Has the data for this model been submitted
     is_key_value_model;         // If true sets up script and objects to handle column_to_row
     key_value_model_fields = {};// A dict of the fields that will be used in the column_to_row
     key_value_model_setup = []; // A list of dicts, one per row, to set up the table
@@ -162,8 +182,10 @@ class ImportSchemeItem{
         // Open or close accordion based on start_expanded
         if (this.start_expanded){
             this.collapse.collapse('show');
+            this.set_submitted(false);
         } else {
             this.collapse.collapse('hide');
+            this.set_submitted(true);
         };
         
         if (this.selectpicker){
@@ -275,6 +297,7 @@ class ImportSchemeItem{
                     caller: this,
                 }).done(function (data) {
                     window.import_scheme.find_item_by_model($(this.caller).attr("data-model")).load();
+                    window.import_scheme.find_item_by_model($(this.caller).attr("data-model")).set_submitted(true);
                 });
 
             });
@@ -283,6 +306,13 @@ class ImportSchemeItem{
         // Set dirty to false so it won't rerender if it doesn't need to
         this.dirty = false;
         check_submittable(this.model);
+    }
+
+    set_submitted(value){
+        // Set the submitted value and update the submit button
+
+        this.submitted = value;
+        window.import_scheme.check_previewable();
     }
 
     check_submittable(){
@@ -516,6 +546,7 @@ function manage_key_value_model_feeder_input(model){
 
 
 function manage_key_value_model_table(model, row){
+    /// Run when a key_value_model_table_key is updated to show or hide the raw_text field
     if($("#key_value_model_table_key_" + model + "_" + row).find(":selected").val() == "**raw_text**"){
         $("#key_value_model_table_key_" + model + "_" + row + "_raw_text").removeClass('not-visible');
     }
@@ -564,6 +595,7 @@ function manage_file_field_input(field, model){
         $("#resolver_" + field + "__-__" + resolver + "_hider").removeClass("not-visible")
     };
 
+    window.import_scheme.find_item_by_model(model).set_submitted(false);
     check_submittable(model);
 };
 
