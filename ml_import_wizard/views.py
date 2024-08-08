@@ -585,10 +585,35 @@ class PreviewImportScheme(LoginRequiredMixin, View):
 
         table = import_scheme.preview_data_table(limit_count=5)
         
+        if not import_scheme.status.import_defined:
+            import_scheme.set_status_by_name("Import Defined")
+            import_scheme.save()
+
         columns = json.dumps([{"field": column["column_name"], "title": fancy_name(column["name"])} for column in table["columns"]])
         rows = json.dumps(table_resolve_key_values_to_string(table=table["rows"]))
 
-        return render(request, "ml_import_wizard/scheme_preview.html", context={"columns": columns, "rows": rows})
+        return render(request, "ml_import_wizard/scheme_preview.html", context={"import_scheme": import_scheme, "columns": columns, "rows": rows})
+    
+
+class AcceptPreviewImportScheme(LoginRequiredMixin, View):
+    """ Accept the import """
+
+    def get(self, request, *args, **kwargs):
+        """ Set the import scheme to previewed, and return to the import page """
+
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
+        
+        if not import_scheme.status.data_previewed:
+            import_scheme.set_status_by_name("Data Previewed")
+            import_scheme.save()
+
+        return HttpResponseRedirect(reverse('ml_import_wizard:import'))
+        
     
 class DescribeImportScheme(LoginRequiredMixin, View):
     """ Describe the import in an easy to digest and copy out format """

@@ -1,8 +1,11 @@
 {% extends "ml_import_wizard/base.html" %}
 
 {% block page_content %}
-Looking to preview:<br>
-<table id='datatable'></table>
+<div class='border border-2 border-primary rounded-3 bg-light container'>
+    Preview for: <b>{{import_scheme}}</b>
+    <table id='datatable'></table>
+    <a role="button" class="btn btn-primary mt-2 mb-2" id="approve_button" href="{% url 'ml_import_wizard:scheme_preview_accept' import_scheme_id=import_scheme.id %}">Approve Preview</a>
+</div>
 
 <script type="text/javascript">
 $( document ).ready(
