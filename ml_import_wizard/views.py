@@ -37,15 +37,7 @@ class ManageImports(LoginRequiredMixin, View):
             importers.append(importer_item)
 
         # Show Import Schemes that this user owns
-        for import_scheme in ImportScheme.objects.filter(user_id=request.user.id):
-            user_import_scheme_item: dict = {
-                'name': import_scheme.name,
-                'id': import_scheme.id,
-                'importer': import_scheme.importer,
-                "description": import_scheme.description,
-            }
-
-            user_import_schemes.append(user_import_scheme_item)
+        user_import_schemes = ImportScheme.objects.filter(user_id=request.user.id)
  
         return render(request, "ml_import_wizard/manager.html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
 

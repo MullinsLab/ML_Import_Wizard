@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ml_import_wizard/base.html" %}
 
 {% block page_content %}
 So, it looks like you're wanting to import something?
@@ -12,7 +12,7 @@ Do you want to import something new:
 {% if user_import_schemes|length %}
 Or keep working with a previous import?
 <ul>{% for scheme in user_import_schemes %}
-<li><a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a>{% if scheme.description %}: {{scheme.description }}{% endif %}</li>
+<li><a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a> [Status: <span class="status">{{ scheme.status }}</span>] {% if scheme.description %}: {{scheme.description }}{% endif %}</li>
 {% endfor %}
 </ul>{% endif %}
 {% endblock %}
