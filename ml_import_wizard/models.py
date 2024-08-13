@@ -452,7 +452,8 @@ class ImportScheme(ImportBaseModel):
 
             # Step through columns and clean the data
             for column in columns:
-                row_dict[column["column_name"]] = column["importer_field"].clean_data(row_dict[column["column_name"]])
+                if not column['importer_model'].is_key_value:
+                    row_dict[column["column_name"]] = column["importer_field"].clean_data(row_dict[column["column_name"]])
 
             yield row_dict
 
