@@ -56,6 +56,7 @@ class ImportSchemeStatus(ImportBaseModel):
     import_defined = models.BooleanField(default=False)
     import_started = models.BooleanField(default=False)
     import_completed = models.BooleanField(default=False)
+    import_failed = models.BooleanField(default=False)
 
 
 class ImportScheme(ImportBaseModel):
@@ -69,6 +70,8 @@ class ImportScheme(ImportBaseModel):
     status = models.ForeignKey(ImportSchemeStatus, on_delete=models.DO_NOTHING, default=1, related_name="schemes")
     public = models.BooleanField(default=True)
     settings = models.JSONField(null=False, blank=False, default=dict)
+    process_pid = models.IntegerField(null=True)
+    process_created_time = models.FloatField(null=True)
 
     def save(self, *args, **kwargs) -> None:
         ''' Override Save to store the importer_hash.  This is used to know if the Importer definition has changed, invalidating this importer  '''
@@ -823,7 +826,7 @@ class ImportScheme(ImportBaseModel):
                 models.append(model_object)
 
         return description
-
+    
 
 class ImportSchemeFileStatus(ImportBaseModel):
     """ Holds statuses for ImportSchemeFiles """
