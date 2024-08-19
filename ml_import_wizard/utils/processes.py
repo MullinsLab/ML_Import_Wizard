@@ -14,9 +14,10 @@ def start_next_process():
     schemes = models.ImportScheme.objects.filter(status__data_previewed=True, status__import_started=False)
 
     if models.ImportScheme.objects.filter(status__data_previewed=True, status__import_started=False).count() < settings.ML_IMPORT_WIZARD.get("Max_Importer_Processes", 1):
-        if process := models.ImportScheme.objects.filter(status__data_previewed=True, status__import_started=False):        
-            process.run()
+        if scheme := models.ImportScheme.objects.filter(status__data_previewed=True, status__import_started=False).first():
+            log.warn(f"Starting process {scheme}")  
+            #scheme.process_run()
 
-            return True
+            return scheme
     
     return False

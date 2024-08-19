@@ -828,7 +828,7 @@ class ImportScheme(ImportBaseModel):
         return description
     
     def process_start(self) -> None:
-        """ Start the process """
+        """ Mark the process started """
 
         self.set_status_by_name("Import Started")
         self.process_pid = os.getpid()
@@ -836,7 +836,7 @@ class ImportScheme(ImportBaseModel):
         self.save()
 
     def process_complete(self) -> None:
-        """ Complete the process """
+        """ Mark the process completed """
 
         self.set_status_by_name("Import Completed")
         self.process_pid = None
@@ -844,13 +844,20 @@ class ImportScheme(ImportBaseModel):
         self.save()
 
     def process_fail(self) -> None:
-        """ Fail the process """
+        """ Mark the process failed """
 
         self.set_status_by_name("Import Failed")
         self.process_pid = None
         self.process_created_time = None
         self.save()
 
+    def process_run(self) -> None:
+        """ Run the process """
+
+        self.process_start()
+        self.execute()
+        self.process_complete()
+        
 
 class ImportSchemeFileStatus(ImportBaseModel):
     """ Holds statuses for ImportSchemeFiles """
