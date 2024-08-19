@@ -827,6 +827,30 @@ class ImportScheme(ImportBaseModel):
 
         return description
     
+    def process_start(self) -> None:
+        """ Start the process """
+
+        self.set_status_by_name("Import Started")
+        self.process_pid = os.getpid()
+        self.process_created_time = psutil.Process(self.pid).create_time()
+        self.save()
+
+    def process_complete(self) -> None:
+        """ Complete the process """
+
+        self.set_status_by_name("Import Completed")
+        self.process_pid = None
+        self.process_created_time = None
+        self.save()
+
+    def process_fail(self) -> None:
+        """ Fail the process """
+
+        self.set_status_by_name("Import Failed")
+        self.process_pid = None
+        self.process_created_time = None
+        self.save()
+
 
 class ImportSchemeFileStatus(ImportBaseModel):
     """ Holds statuses for ImportSchemeFiles """
