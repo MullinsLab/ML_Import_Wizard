@@ -4,8 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
-from ml_import_wizard.utils.processes import start_next_process
-from ml_import_wizard.exceptions import ImportSchemeNotReady, GFFUtilsNotInstalledError
+from ml_import_wizard.utils.processes import start_next_process, check_processes
 
 
 class Command(BaseCommand):
@@ -19,6 +18,9 @@ class Command(BaseCommand):
         
     def handle(self, *args, **options):
         ''' Do the work of inspecting a file '''
+
+        check_processes()
+
         if scheme := start_next_process():
             self.stdout.write(self.style.SUCCESS(f'{scheme} ({scheme.id}) has been processed.'))
         

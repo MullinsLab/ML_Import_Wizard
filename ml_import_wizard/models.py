@@ -1,6 +1,7 @@
 from pathlib import Path
 from itertools import islice
-import os.path, sqlite3, pandas as pd
+import os.path, sqlite3, psutil
+import pandas as pd
 from typing import Generator, Callable
 
 from django.conf import settings
@@ -857,7 +858,28 @@ class ImportScheme(ImportBaseModel):
         self.process_start()
         self.execute()
         self.process_complete()
-        
+
+    def process_check_health(self) -> bool:
+        """ Check the health of the process """
+
+        healthy: bool = True
+
+        if not self.status.import_started:
+            healthy = True
+
+        elif not psutil.pid_exists(self.pid):
+            healthy = False
+
+        else:
+            process = psutil.Process(self.pid)
+
+            if process.create_time() != self.created_time:
+                healthy = False
+
+        if not healthy:
+            self.process_fail()
+
+        return healthy
 
 class ImportSchemeFileStatus(ImportBaseModel):
     """ Holds statuses for ImportSchemeFiles """
