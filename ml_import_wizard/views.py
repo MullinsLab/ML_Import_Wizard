@@ -312,7 +312,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     if import_scheme_file.ready_to_inspect:
                         import_scheme_file.set_status_by_name("Preinspected")
                         import_scheme_file.save(update_fields=["status"])
-                        os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_scheme_file.id))
+                        # os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_scheme_file.id))
 
                 return JsonResponse({'saved': True})
             else:

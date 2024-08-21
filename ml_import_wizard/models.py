@@ -967,6 +967,7 @@ class ImportSchemeFile(ImportBaseModel):
             raise StatusNotFound(f"ImportSchemeFileStatus {status} is not valid")
         
         self.status = status_object
+        self.save()
 
     def import_fields(self, *, fields: dict=None) -> None:
         ''' Import the fields contained in the file, along with sample '''
@@ -980,6 +981,8 @@ class ImportSchemeFile(ImportBaseModel):
     def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
         """ Inspect the file to figure out what fields it has """
         
+        self.set_status_by_name("Inspecting")
+
         if self.base_type == "gff":
             self._inspect_gff_file(use_db=use_db, ignore_status=ignore_status)
 
@@ -1004,7 +1007,7 @@ class ImportSchemeFile(ImportBaseModel):
                     row_dict = {}
                     
                     for index, field in enumerate(row):
-                        row_dict[columns[index]] = field;
+                        row_dict[columns[index]] = field
                     yield row_dict
 
     def header_fields(self, *, connection = None) -> list:
