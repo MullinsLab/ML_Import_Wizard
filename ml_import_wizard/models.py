@@ -833,7 +833,7 @@ class ImportScheme(ImportBaseModel):
 
         self.set_status_by_name("Import Started")
         self.process_pid = os.getpid()
-        self.process_created_time = psutil.Process(self.pid).create_time()
+        self.process_created_time = psutil.Process(self.process_pid).create_time()
         self.save()
 
     def process_complete(self) -> None:

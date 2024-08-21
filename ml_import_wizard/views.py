@@ -575,6 +575,10 @@ class PreviewImportScheme(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
+        if not import_scheme.status.import_defined:
+            import_scheme.set_status_by_name("Import Defined")
+            import_scheme.save()
+            
         table = import_scheme.preview_data_table(limit_count=5)
         
         if not import_scheme.status.import_defined:

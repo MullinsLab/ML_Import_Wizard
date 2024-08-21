@@ -36,7 +36,7 @@ def start_next_process() -> None:
     # Run an import
     if scheme := models.ImportScheme.objects.filter(status__data_previewed=True, status__import_started=False).first():
         log.warn(f"Starting process {scheme}")  
-        #scheme.process_run()
+        scheme.process_run()
 
         return scheme
     
