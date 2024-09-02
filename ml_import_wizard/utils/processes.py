@@ -12,7 +12,7 @@ def check_processes() -> None:
     """ Checks running processes for crashes """
 
     for scheme in models.ImportScheme.objects.filter(status__import_started=True, status__import_completed=False, status__import_failed=False):
-        scheme.check_process_health()
+        scheme.process_check_health()
         
 
 def start_next_process() -> None:
