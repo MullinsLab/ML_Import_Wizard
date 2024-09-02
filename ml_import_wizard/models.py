@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import models, IntegrityError, transaction
 from django.db.models import Count
 from django.db.models.functions import Lower
+from django.utils.module_loading import import_string
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
@@ -738,6 +739,9 @@ class ImportScheme(ImportBaseModel):
                 ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
 
             row_count += 1
+
+        if after_import_callable := settings.ML_IMPORT_WIZARD.get("Call_After_Import", None):
+            import_string(after_import_callable)()
 
     def description_object(self) -> str:
         """ Returns a dict that describes the import in human readable terms """
