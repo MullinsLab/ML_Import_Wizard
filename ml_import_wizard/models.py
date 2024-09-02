@@ -6,6 +6,7 @@ from typing import Generator, Callable
 
 from django.conf import settings
 from django.db import models, IntegrityError, transaction
+from django.db.models import Count
 from django.db.models.functions import Lower
 
 import logging
@@ -867,11 +868,11 @@ class ImportScheme(ImportBaseModel):
         if not self.status.import_started:
             healthy = True
 
-        elif not psutil.pid_exists(self.pid):
+        elif not psutil.pid_exists(self.process_pid):
             healthy = False
 
         else:
-            process = psutil.Process(self.pid)
+            process = psutil.Process(self.process_pid)
 
             if process.create_time() != self.created_time:
                 healthy = False
