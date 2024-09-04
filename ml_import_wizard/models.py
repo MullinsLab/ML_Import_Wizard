@@ -101,6 +101,16 @@ class ImportScheme(ImportBaseModel):
         """ Return the import object that this importer uses """
 
         return importers[self.importer]
+    
+    @property
+    def all_files_inspected(self) -> bool:
+        """ Returns a bool indicating whether all files have been inspected """
+
+        for file in self.files.all():
+            if not file.status.inspected:
+                return False
+        
+        return True
 
     def set_status_by_name(self, status):
         """ Looks up the status name and """
@@ -878,7 +888,7 @@ class ImportScheme(ImportBaseModel):
         else:
             process = psutil.Process(self.process_pid)
 
-            if process.create_time() != self.created_time:
+            if process.create_time() != self.process_created_time:
                 healthy = False
 
         if not healthy:

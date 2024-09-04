@@ -11,6 +11,16 @@ from ml_import_wizard import models
 def check_processes() -> None:
     """ Checks running processes for crashes """
 
+    # Update status if scheme has all files inspected
+    for scheme in models.ImportScheme.objects.filter(status__files_received=True, status__files_inspected=False):
+        if scheme.all_files_inspected:
+            scheme.set_status_by_name("Files Inspected")
+            scheme.save()
+
+            log.warn(f"{scheme} has all files inspected, setting status to 'Files Inspected'")
+
+
+    # Check for crashed imports
     for scheme in models.ImportScheme.objects.filter(status__import_started=True, status__import_completed=False, status__import_failed=False):
         scheme.process_check_health()
         

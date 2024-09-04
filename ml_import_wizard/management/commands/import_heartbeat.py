@@ -24,5 +24,5 @@ class Command(BaseCommand):
         if scheme := start_next_process():
             self.stdout.write(self.style.SUCCESS(f'{scheme} ({scheme.id}) has been processed.'))
         
-        else:
-            self.stdout.write(self.style.SUCCESS(f'No import jobs ready to run.'))
+        # else:
+        #     self.stdout.write(self.style.SUCCESS(f'No import jobs ready to run.'))

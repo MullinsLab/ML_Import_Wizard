@@ -315,6 +315,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                         # os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_scheme_file.id))
 
                 return JsonResponse({'saved': True})
+            
             else:
                 form: UploadFileForImportForm = UploadFileForImportForm(request.POST, request.FILES)
                 # file: file = request.FILES['file']
@@ -330,7 +331,10 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                         import_file.set_status_by_name('Uploaded')
                         import_file.save(update_fields=["status"])
                         
-                        os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+                        #os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+
+                    import_scheme.set_status_by_name("Files Received")
+                    import_scheme.save()
                     
                     return JsonResponse({'saved': True})
                 else:
