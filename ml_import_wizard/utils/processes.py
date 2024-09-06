@@ -27,14 +27,6 @@ def check_processes() -> None:
 
 def start_next_process() -> None:
     """ Starts the next process in the queue """
-    
-    # Check to see how many processes are running
-    count: int = models.ImportScheme.objects.filter(status__import_started=True, status__import_completed=False).count()
-    count += models.ImportSchemeFile.objects.filter(status__inspecting=True, status__inspected=False).count()
-
-    if count >= settings.ML_IMPORT_WIZARD['Max_Importer_Processes']:
-        log.warn(f"Max importer processes reached ({count})")
-        return False
 
     # Run a file inspection
     if scheme_file := models.ImportSchemeFile.objects.filter(status__preinspected=True, status__inspecting=False).first():
@@ -43,6 +35,13 @@ def start_next_process() -> None:
 
         return scheme_file
 
+    # Check to see how many processes are running
+    count: int = models.ImportScheme.objects.filter(status__import_started=True, status__import_completed=False).count()
+
+    if count >= settings.ML_IMPORT_WIZARD['Max_Importer_Processes']:
+        log.warn(f"Max importer processes reached ({count})")
+        return False
+    
     # Run an import
     if scheme := models.ImportScheme.objects.filter(status__data_previewed=True, status__import_started=False).first():
         log.warn(f"Starting process {scheme}")  
