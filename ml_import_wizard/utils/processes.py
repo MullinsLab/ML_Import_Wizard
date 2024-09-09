@@ -36,7 +36,7 @@ def start_next_process() -> None:
         return scheme_file
 
     # Check to see how many processes are running
-    count: int = models.ImportScheme.objects.filter(status__import_started=True, status__import_completed=False).count()
+    count: int = models.ImportScheme.objects.filter(status__import_started=True, status__import_completed=False, status__import_failed=False).count()
 
     if count >= settings.ML_IMPORT_WIZARD['Max_Importer_Processes']:
         log.warn(f"Max importer processes reached ({count})")
