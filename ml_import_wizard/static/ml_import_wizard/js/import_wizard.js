@@ -47,7 +47,7 @@ class ImportScheme {
     };
 
     check_previewable(){
-        if (this.is_submitted()){
+        if (this.is_submitted() && this.items.length > 1){
             $("#preview_button").removeClass('disabled');
         }
         else {
