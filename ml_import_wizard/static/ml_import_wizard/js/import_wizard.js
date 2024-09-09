@@ -642,9 +642,6 @@ function prep_upload_progress_bar(args){
                 return xhr
             },
             success: function(response){
-                // progress_modal.modal('hide');
-                console.log("Trying to hide modal");
-                console.log($('#progress_modal_control'));
                 setTimeout(()=>{$('#progress_modal_control').modal('hide')}, 1000);
                 window.import_scheme.find_item_by_id(0).load();
             },
