@@ -7,8 +7,10 @@ app_name='ml_import_wizard'
 
 urlpatterns = [
     path('', ManageImports.as_view(), name='import'),
+    path('<int:import_scheme_id>/delete', DeleteImportScheme.as_view(), name='scheme_delete'),
     path('<int:import_scheme_id>', DoImportScheme.as_view(), name='scheme'),
     path('<int:import_scheme_id>/list', ListImportSchemeItems.as_view(), name='scheme_list_items'),
+    
     path('<int:import_scheme_id>/preview', PreviewImportScheme.as_view(), name='scheme_preview_items'),\
     path('<int:import_scheme_id>/accept', AcceptPreviewImportScheme.as_view(), name='scheme_preview_accept'),
     path('<int:import_scheme_id>/description', DescribeImportScheme.as_view(), name='scheme_description'),

@@ -41,6 +41,27 @@ class ManageImports(LoginRequiredMixin, View):
  
         return render(request, "ml_import_wizard/manager.html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
 
+class DeleteImportScheme(LoginRequiredMixin, View):
+    """ Delete the ImportScheme for a particular ImportScheme """
+
+    def post(self, request, *args, **kwargs):
+        """ Delete the ImportSchemeItems  """
+        scheme_id = request.POST.get('scheme_id')
+        try:
+            importscheme = ImportScheme.objects.get(id=scheme_id)
+            importscheme.delete()
+            return (True)
+        except ImportScheme.DoesNotExist:
+            return (False)
+        except ImportScheme.MultipleObjectsReturned:
+            return (False)
+        except Exception as e:  
+            log.error(f"Error deleting ImportScheme: {e}")
+            return (False)
+        return (False)  
+
+        
+
 
 class NewImportScheme(LoginRequiredMixin, View):
     """ View for creating a new import """
@@ -150,7 +171,9 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
             'import_scheme_items': import_scheme_items
         })
 
+
     
+
 class DoImportSchemeItem(LoginRequiredMixin, View):
     """ Show and store ImportItems """
 

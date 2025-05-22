@@ -11,8 +11,42 @@ Do you want to import something new:
 </ul>
 {% if user_import_schemes|length %}
 Or keep working with a previous import?
+
+
 <ul>{% for scheme in user_import_schemes %}
-<li><a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a> [Status: <span class="status">{{ scheme.status }}</span>] {% if scheme.description %}: {{scheme.description }}{% endif %}</li>
+<li>
+    <a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a> [Status: <span class="status">{{ scheme.status }}</span>] {% if scheme.description %}: {{scheme.description }}{% endif %}
+    <button class="delete-scheme" data-name={{ scheme.description }} data-id="{{ scheme.id }}" data-url="{% url 'ml_import_wizard:scheme_delete' scheme.id %}">
+        <i class="fa fa-trash">  </i>
+    </button>
+</li>
 {% endfor %}
 </ul>{% endif %}
+
+<script>
+    $(document).ready(function() {
+        $('.delete-scheme').on('click', function() {
+            var schemeId = $(this).data('id');
+            var schemeName = $(this).data('name');
+            var url = $(this).data('url');
+            
+            if (!confirm('Are you sure you want to delete:'+schemeName)) return;
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                data: ({'scheme_id': schemeId}),
+                
+                success: function(result) {
+                    alert(result);
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    alert('Error deleting scheme: ' + error);
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
