@@ -13,21 +13,9 @@ Do you want to import something new :
 Or keep working with a previous import?
 
 
-<ul>{% for scheme in user_import_schemes %}
-
-    <li>
-    <a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a> [Status: <span class="status">{{ scheme.status }}</span>] {% if scheme.description %}: {{scheme.description }}{% endif %}
-    <button class="delete-scheme" data-name={{ scheme.description }} data-id="{{ scheme.id }}" data-url="{% url 'ml_import_wizard:scheme_delete' scheme.id %}">
-        <i class="fa fa-trash">  </i>
-    </button>
-</li>
-{% endfor %}
-</ul>
-
-
 <div class="col-sm-12">
     <table id="example" class="table table-striped table-bordered viroverse-table-tight">
-        {% comment %} style="width:100%" {% endcomment %}
+        {% comment %} style="width:50%" {% endcomment %}
         <thead>
             <tr>
                 <th>Name</th>
@@ -40,7 +28,7 @@ Or keep working with a previous import?
         <tbody>
         {% for scheme in user_import_schemes %}
             <tr>
-                <td>{{ scheme.name }}</td>
+                <td><a href='{% url 'ml_import_wizard:import' %}{{ scheme.id }}'>{{ scheme.name }}</a></td>
                 <td>{{ scheme.description }}</td>
                 <td><span class="status">{{ scheme.status }}</span></td>
                 <td>
