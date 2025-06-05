@@ -71,9 +71,8 @@ Or keep working with a previous import?
 
          var schemeTable = $('#scheme').DataTable({
             
-            "scrollX": true,
-            responsive: true
-            "pageLength": 50,
+            ordering: true,
+            lengthMenu: [10, 25, 50, -1]
 
         });
 
